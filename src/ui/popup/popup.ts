@@ -2,6 +2,7 @@
 
 import { sendMessage } from '../../common/messages.ts';
 import type { CredentialSummary, VaultStatus } from '../../common/messages.ts';
+import { waitForSignIn } from '../wait-for-signin.ts';
 
 const statusEl = document.getElementById('status') as HTMLDivElement;
 const listEl = document.getElementById('list') as HTMLUListElement;
@@ -77,10 +78,16 @@ function showSignInPrompt(): void {
   button.textContent = 'Sign in at accounts.firefox.com';
   button.addEventListener('click', async () => {
     button.disabled = true;
-    button.textContent = 'Waiting for Mozilla sign-in…';
+    button.textContent = 'Opening Mozilla sign-in…';
     try {
       await sendMessage({ type: 'account/signInHosted' });
-      await load();
+      // The popup closes the moment the sign-in tab takes focus, so this often
+      // never resolves here — and that is fine. The background finishes on its
+      // own now; reopening the popup shows the result.
+      button.textContent = 'Finish signing in, then reopen this popup';
+      const result = await waitForSignIn();
+      if (result.status === 'complete') await load();
+      else if (result.error) showError(result.error);
     } catch (error) {
       showError(error);
     } finally {
@@ -275,6 +282,10 @@ document.getElementById('check-updates')?.addEventListener('click', async (event
   } finally {
     button.disabled = false;
   }
+});
+
+chrome.runtime.onMessage.addListener((message: { type?: string }) => {
+  if (message?.type === 'state/signedin') void load();
 });
 
 void load();

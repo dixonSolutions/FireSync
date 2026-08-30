@@ -4,6 +4,38 @@ All notable changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — 2026-08-30
+
+### Fixed
+
+- **Hosted sign-in did not survive the service worker being killed, which is to say it
+  usually did not work.** The flow kept the PKCE verifier, the ephemeral private key and the
+  `chrome.tabs.onUpdated` listener in a closure, with a ten-minute `setTimeout` waiting for
+  the redirect. Manifest V3 reaps a service worker after about thirty seconds of inactivity,
+  and signing in to Mozilla — email, password, a two-factor code fetched from a phone — takes
+  longer. The worker died mid-flow and took the listener, the state and the timer with it, so
+  when Mozilla finally redirected there was nothing listening and the extension was still
+  signed out.
+
+  The flow is now persisted to `chrome.storage.session`, which survives worker restarts and
+  dies with the browser — the right lifetime for a single-use verifier and key. The
+  navigation listeners are registered at the top level of the service worker, so they are
+  re-registered on every wake, and a navigation is itself an event that wakes it. Nineteen
+  tests cover this, several of which complete a sign-in through a *different* coordinator
+  instance, which is what a worker restart looks like from the inside.
+
+- The popup could not complete a sign-in at all, because it closes the moment the sign-in tab
+  takes focus and only the onboarding page held a keepalive port. Both UIs now poll for the
+  result instead of awaiting a promise that may never resolve, and the popup updates itself if
+  a sign-in completes while it is open.
+
+### Added
+
+- A redacted trail of the pages a sign-in visited, surfaced in the UI when it fails, so a
+  failure says where it stopped rather than only that it stopped. Query strings are stripped,
+  since the redirect carries an authorization code.
+- `account/signInProgress` and `account/cancelSignIn`.
+
 ## [0.5.0] — 2026-08-30
 
 ### Added

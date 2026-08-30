@@ -15,8 +15,6 @@ import type { CredentialSummary, Message, Reply, ResponseMap, VaultStatus } from
 import { BridgeClient } from '../bridge/client.ts';
 import { BridgeUnavailableError } from '../bridge/protocol.ts';
 import { ConnectSession } from '../fxa/connect.ts';
-import { HostedSignIn } from '../fxa/hosted.ts';
-import { DEFAULT_HOSTED_CLIENT_ID, FxAClient } from '../fxa/client.ts';
 import type { ConnectStep } from '../fxa/connect.ts';
 import { originMatches } from '../match/uri.ts';
 import { newPasswordRecord } from '../sync15/engines/passwords.ts';
@@ -26,6 +24,7 @@ import {
   broadcast,
   getFxaClient,
   getPrefs,
+  getSignIn,
   getSyncEngine,
   getUpdateChecker,
   getVault,
@@ -117,7 +116,15 @@ async function handle(message: Message, sender: chrome.runtime.MessageSender): P
 
     // ------------------------------------------------------------ account
     case 'account/signInHosted':
-      return signInHosted(message.email);
+      await vault.ensure();
+      return getSignIn().begin(message.email);
+
+    case 'account/signInProgress':
+      return getSignIn().progress();
+
+    case 'account/cancelSignIn':
+      await getSignIn().cancel();
+      return getSignIn().progress();
 
     case 'account/connect': {
       await vault.ensure();
@@ -305,87 +312,6 @@ async function handle(message: Message, sender: chrome.runtime.MessageSender): P
       throw new Error(`unknown message: ${JSON.stringify(exhaustive)}`);
     }
   }
-}
-
-/**
- * Sign in on Mozilla's own page.
- *
- * Opens a tab at accounts.firefox.com, waits for it to navigate to the OAuth
- * client's registered redirect, and finishes the exchange. FireSync never sees
- * the password, never holds a session token, and never derives kB.
- *
- * The onboarding page keeps a port open for the duration, which is what stops
- * the service worker being killed while the user is typing a 2FA code.
- */
-async function signInHosted(email?: string): Promise<{ step: string; email?: string }> {
-  const flow = new HostedSignIn({
-    client: new FxAClient({ oauthClientId: DEFAULT_HOSTED_CLIENT_ID, userAgent: USER_AGENT }),
-  });
-  await getVault().ensure();
-  const pending = await flow.start(email ? { email } : {});
-  const tab = await chrome.tabs.create({ url: pending.authorizationUrl, active: true });
-  const tabId = tab.id;
-  if (tabId === undefined) throw new Error('could not open the Mozilla sign-in tab');
-
-  const account = await new Promise<Awaited<ReturnType<HostedSignIn['complete']>>>(
-    (resolve, reject) => {
-      let settled = false;
-
-      const finish = (error: Error | null, value?: Awaited<ReturnType<HostedSignIn['complete']>>) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        chrome.tabs.onUpdated.removeListener(onUpdated);
-        chrome.tabs.onRemoved.removeListener(onRemoved);
-        if (error) reject(error);
-        else resolve(value as Awaited<ReturnType<HostedSignIn['complete']>>);
-      };
-
-      const timer = setTimeout(
-        () => finish(new Error('sign-in timed out after 10 minutes')),
-        10 * 60_000,
-      );
-
-      const onUpdated = (
-        updatedTabId: number,
-        changeInfo: chrome.tabs.TabChangeInfo,
-        updatedTab: chrome.tabs.Tab,
-      ): void => {
-        if (updatedTabId !== tabId) return;
-        const url = changeInfo.url ?? updatedTab.url;
-        if (!url) return;
-
-        let isRedirect = false;
-        try {
-          isRedirect = flow.matches(url, pending);
-        } catch (error) {
-          // A state mismatch or an explicit error= redirect. Both are fatal.
-          finish(error instanceof Error ? error : new Error(String(error)));
-          return;
-        }
-        if (!isRedirect) return;
-
-        void chrome.tabs.remove(tabId).catch(() => undefined);
-        flow
-          .complete(url, pending)
-          .then((value) => finish(null, value))
-          .catch((error: unknown) =>
-            finish(error instanceof Error ? error : new Error(String(error))),
-          );
-      };
-
-      const onRemoved = (removedTabId: number): void => {
-        if (removedTabId === tabId) finish(new Error('sign-in was cancelled'));
-      };
-
-      chrome.tabs.onUpdated.addListener(onUpdated);
-      chrome.tabs.onRemoved.addListener(onRemoved);
-    },
-  );
-
-  await getVault().writeTokens(account);
-  void queueSync();
-  return { step: 'complete', email: account.email };
 }
 
 /** Persist the account when the sign-in machine reports completion. */

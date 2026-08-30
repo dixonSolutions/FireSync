@@ -13,9 +13,22 @@ import {
   schedulePeriodicSync,
   scheduleUpdateCheck,
 } from './router.ts';
-import { broadcast, getPrefs, getSyncEngine, getUpdateChecker, getVault } from './state.ts';
+import { broadcast, getPrefs, getSignIn, getSyncEngine, getUpdateChecker, getVault } from './state.ts';
 
 installRouter();
+
+/**
+ * Sign-in navigation listeners, registered at the top level so they exist on
+ * every service-worker wake. A navigation wakes the worker, which re-runs this
+ * file, which re-registers these — which is the only way a flow spanning a
+ * several-minute Mozilla sign-in can survive an MV3 worker's ~30 second life.
+ */
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  void getSignIn().onNavigation(tabId, changeInfo.url ?? tab.url);
+});
+chrome.tabs.onRemoved.addListener((tabId) => {
+  void getSignIn().onTabClosed(tabId);
+});
 
 chrome.runtime.onInstalled.addListener((details) => {
   void (async () => {

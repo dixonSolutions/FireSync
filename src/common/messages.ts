@@ -13,6 +13,7 @@ import type { SyncResult } from '../sync15/engine.ts';
 import type { GlobalPreferences, SitePreferences } from '../prefs/types.ts';
 import type { BridgeInfo, FirefoxProfile } from '../bridge/protocol.ts';
 import type { UpdateState } from '../update/types.ts';
+import type { SignInProgress } from '../background/signin.ts';
 
 /** A credential summary safe to hand to a content script. */
 export interface CredentialSummary {
@@ -54,6 +55,8 @@ export type Message =
   | { type: 'vault/setPassphrase'; passphrase: string | null; current?: string }
   | { type: 'vault/reset' }
   | { type: 'account/signInHosted'; email?: string }
+  | { type: 'account/signInProgress' }
+  | { type: 'account/cancelSignIn' }
   | { type: 'account/connect'; email: string; password: string; unblockCode?: string }
   | { type: 'account/submitTotp'; code: string }
   | { type: 'account/submitEmailCode'; code: string }
@@ -89,7 +92,9 @@ export interface ResponseMap {
   'vault/lock': VaultStatus;
   'vault/setPassphrase': VaultStatus;
   'vault/reset': VaultStatus;
-  'account/signInHosted': { step: string; email?: string };
+  'account/signInHosted': { step: string };
+  'account/signInProgress': SignInProgress;
+  'account/cancelSignIn': SignInProgress;
   'account/connect': { step: string; email?: string };
   'account/submitTotp': { step: string };
   'account/submitEmailCode': { step: string };
@@ -160,6 +165,7 @@ export type Broadcast =
   | { type: 'state/locked' }
   | { type: 'state/unlocked' }
   | { type: 'state/synced'; result: SyncResult }
+  | { type: 'state/signedin' }
   | { type: 'menu/fill'; credential: CredentialSummary };
 
 export function ok<T>(data: T): Success<T> {

@@ -7,6 +7,7 @@
  */
 
 import { sendMessage } from '../../common/messages.ts';
+import { waitForSignIn } from '../wait-for-signin.ts';
 
 chrome.runtime.connect({ name: 'firesync.keepalive' });
 
@@ -26,27 +27,7 @@ const text = (id: string, value: string): void => {
  * The preferred route: Mozilla's own sign-in page in a new tab. The background
  * watches that tab for the OAuth redirect, so this just waits for the answer.
  */
-document.getElementById('hosted-signin')?.addEventListener('click', async (event) => {
-  const button = event.currentTarget as HTMLButtonElement;
-  button.disabled = true;
-  button.textContent = 'Waiting for Mozilla sign-in…';
-  text('hosted-error', '');
-  try {
-    const result = await sendMessage({ type: 'account/signInHosted' });
-    handleStep(result.step);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    text(
-      'hosted-error',
-      message === 'sign-in was cancelled'
-        ? 'Sign-in tab was closed. Press the button to try again.'
-        : message,
-    );
-  } finally {
-    button.disabled = false;
-    button.textContent = 'Sign in at accounts.firefox.com';
-  }
-});
+/** Move the UI to whatever the sign-in machine says is next. */
 function handleStep(step: string): void {
   switch (step) {
     case 'complete':
@@ -76,6 +57,43 @@ function handleStep(step: string): void {
       break;
   }
 }
+
+document.getElementById('hosted-signin')?.addEventListener('click', async (event) => {
+  const button = event.currentTarget as HTMLButtonElement;
+  button.disabled = true;
+  button.textContent = 'Opening Mozilla sign-in…';
+  text('hosted-error', '');
+
+  try {
+    await sendMessage({ type: 'account/signInHosted' });
+    button.textContent = 'Waiting for you to finish signing in…';
+
+    const result = await waitForSignIn({
+      onTrail: (trail) => {
+        const last = trail[trail.length - 1];
+        if (last) text('hosted-error', `At ${last}`);
+      },
+    });
+
+    if (result.status === 'complete') {
+      text('hosted-error', '');
+      handleStep('complete');
+      return;
+    }
+    text(
+      'hosted-error',
+      result.status === 'cancelled'
+        ? 'Sign-in was cancelled. Press the button to try again.'
+        : (result.error ?? 'Sign-in did not complete.') +
+            (result.trail?.length ? ` (last page: ${result.trail[result.trail.length - 1]})` : ''),
+    );
+  } catch (error) {
+    text('hosted-error', error instanceof Error ? error.message : String(error));
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Sign in at accounts.firefox.com';
+  }
+});
 
 (document.getElementById('account-form') as HTMLFormElement).addEventListener(
   'submit',

@@ -12,6 +12,7 @@ import type { StorageAreas } from '../common/storage.ts';
 import { FxAClient } from '../fxa/client.ts';
 import { PreferencesStore } from '../prefs/store.ts';
 import { SyncEngine } from '../sync15/engine.ts';
+import { SignInCoordinator } from './signin.ts';
 import { UpdateChecker } from '../update/checker.ts';
 import { VaultStore } from '../vault/store.ts';
 
@@ -23,6 +24,7 @@ let prefs: PreferencesStore | null = null;
 let fxa: FxAClient | null = null;
 let engine: SyncEngine | null = null;
 let updates: UpdateChecker | null = null;
+let signIn: SignInCoordinator | null = null;
 
 export function getAreas(): StorageAreas {
   return (areas ??= chromeStorageAreas());
@@ -56,6 +58,21 @@ export function getUpdateChecker(): UpdateChecker {
   }));
 }
 
+/**
+ * The sign-in coordinator. Rebuilt on every service-worker wake, which is the
+ * point: it keeps nothing in memory, so a fresh instance can pick up a flow
+ * that a previous instance started.
+ */
+export function getSignIn(): SignInCoordinator {
+  return (signIn ??= new SignInCoordinator({
+    session: getAreas().session,
+    saveAccount: (account) => getVault().writeTokens(account),
+    onComplete: () => {
+      void broadcast({ type: 'state/signedin' });
+    },
+  }));
+}
+
 /** Drop cached objects — used after a reset so nothing stale survives. */
 export function resetState(): void {
   areas = null;
@@ -64,6 +81,7 @@ export function resetState(): void {
   fxa = null;
   engine = null;
   updates = null;
+  signIn = null;
 }
 
 /** Tell every content script and open page that the lock state changed. */
