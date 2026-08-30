@@ -69,10 +69,15 @@ Honesty about provenance, since these claims matter:
 
 | Route | Status |
 |---|---|
+| **Managed-policy install** (what `install.sh` does) | **Verified end to end** on Chromium 150, Debian, *unmanaged* machine. Policy written, browser started, extension fetched from the published `update.xml`, installed in ~6 seconds. `from_webstore: false`, `disable_reasons: []`, service worker running, Developer mode off throughout. |
 | `--load-extension` with Developer mode off | **Verified** on Chromium 150, virgin profile |
-| `/usr/share/chromium/extensions` drop-in | Directory confirmed compiled into the Chromium binary; behaviour per Google's documentation ("Linux users won't be prompted") — not run here, as it needs root |
-| Managed-policy install | Policy directories confirmed compiled into the binary; behaviour per Chrome Enterprise documentation — not run here, as it needs root |
+| `/usr/share/chromium/extensions` drop-in | Directory confirmed compiled into the Chromium binary; behaviour per Google's documentation ("Linux users won't be prompted") — not run here |
 | Drag-and-drop CRX | Requires Developer mode to be on |
+
+The first row is the one that matters: **an ordinary, unmanaged Chromium installs a
+self-hosted extension from policy without Developer mode.** That is not a workaround or a
+loophole — it is the documented mechanism, and Chromium does not carry Chrome's Web Store
+publisher-proof requirement.
 
 ## Microsoft Edge
 

@@ -2,8 +2,10 @@
 #
 # Install FireSync on a Chromium-family browser on Linux, without Developer mode.
 #
-#   sudo ./install.sh                 # detect browsers, install, auto-updating
-#   sudo ./install.sh --method drop   # use the external-extensions drop-in instead
+#   sudo ./install.sh                    # detect browsers, install, auto-updating
+#   sudo ./install.sh --browser chromium # only this browser (repeatable)
+#   sudo ./install.sh --method drop      # external-extensions drop-in instead
+#   sudo ./install.sh --list             # show what would be touched, change nothing
 #   sudo ./install.sh --uninstall
 #
 # Two mechanisms are available, both documented by Google and neither requiring
@@ -28,12 +30,16 @@ EXTENSION_ID="${FIRESYNC_EXTENSION_ID:-dojcccmfoafidklfhceikajbcahaamgm}"
 UPDATE_URL="${FIRESYNC_UPDATE_URL:-https://dixonsolutions.github.io/FireSync/update.xml}"
 METHOD="policy"
 UNINSTALL=0
+LIST=0
+ONLY=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --method)      METHOD="${2:-}"; shift 2 ;;
     --id)          EXTENSION_ID="${2:-}"; shift 2 ;;
     --update-url)  UPDATE_URL="${2:-}"; shift 2 ;;
+    --browser)     ONLY+=("${2,,}"); shift 2 ;;
+    --list)        LIST=1; shift ;;
     --uninstall)   UNINSTALL=1; shift ;;
     -h|--help)     sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
@@ -43,7 +49,19 @@ done
 [[ "$METHOD" == "policy" || "$METHOD" == "drop" ]] || { echo "--method must be policy or drop" >&2; exit 2; }
 [[ "$EXTENSION_ID" =~ ^[a-p]{32}$ ]] || { echo "'$EXTENSION_ID' is not a valid extension id" >&2; exit 2; }
 [[ "$UPDATE_URL" == https://* ]] || { echo "the update URL must be https" >&2; exit 2; }
-[[ $EUID -eq 0 ]] || { echo "run this with sudo — it writes under /etc and /usr/share" >&2; exit 1; }
+if [[ $LIST -eq 0 && $EUID -ne 0 ]]; then
+  echo "run this with sudo — it writes under /etc and /usr/share" >&2
+  echo "(use --list to see what it would touch, without root)" >&2
+  exit 1
+fi
+
+# Only act on browsers the caller asked for, when they asked for any.
+wanted() {
+  [[ ${#ONLY[@]} -eq 0 ]] && return 0
+  local name="${1,,}"
+  for pick in "${ONLY[@]}"; do [[ "$name" == *"$pick"* ]] && return 0; done
+  return 1
+}
 
 # name | policy dir | external-extensions dir | detect path
 BROWSERS=(
@@ -90,7 +108,15 @@ found=0
 for entry in "${BROWSERS[@]}"; do
   IFS='|' read -r name policy_dir drop_dir binary <<< "$entry"
   [[ -x "$binary" ]] || continue
+  wanted "$name" || continue
   found=1
+
+  if [[ $LIST -eq 1 ]]; then
+    echo "$name  ($binary)"
+    echo "  policy   $policy_dir/firesync.json"
+    echo "  drop-in  $drop_dir/$EXTENSION_ID.json"
+    continue
+  fi
 
   if [[ $UNINSTALL -eq 1 ]]; then
     echo "$name:"
@@ -103,8 +129,13 @@ for entry in "${BROWSERS[@]}"; do
   if [[ "$METHOD" == "policy" ]]; then write_policy "$policy_dir"; else write_drop "$drop_dir"; fi
 done
 
+if [[ $LIST -eq 1 ]]; then
+  [[ $found -eq 0 ]] && echo "No matching browser found." >&2
+  exit 0
+fi
+
 if [[ $found -eq 0 ]]; then
-  echo "No Chromium-family browser found in /usr/bin." >&2
+  echo "No matching Chromium-family browser found in /usr/bin." >&2
   echo "Pass --method drop and create the directory yourself, or install unpacked." >&2
   exit 1
 fi
