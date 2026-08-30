@@ -1,0 +1,22 @@
+Windows Registry Editor Version 5.00
+
+; FireSync enterprise policy for Google Chrome on Windows.
+;
+; IMPORTANT: Windows only permits OFF-STORE force/normal installs when the
+; device is managed — joined to Active Directory or Microsoft Entra ID, or
+; enrolled in Chrome Enterprise Core. On an unmanaged personal machine this
+; policy is accepted but the extension is silently ignored. See
+; docs/DISTRIBUTION.md#windows for the enrolment path and the alternatives.
+;
+; Replace EXTENSION_ID_HERE and the update URL, then double-click this file.
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome\ExtensionSettings\EXTENSION_ID_HERE]
+"installation_mode"="normal_installed"
+"update_url"="https://example.invalid/firesync/update.xml"
+"override_update_url"=dword:00000001
+"toolbar_pin"="force_pinned"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome]
+"PasswordManagerEnabled"=dword:00000000
+"AutofillAddressEnabled"=dword:00000000
+"AutofillCreditCardEnabled"=dword:00000000

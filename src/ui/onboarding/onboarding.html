@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Set up FireSync</title>
+    <link rel="stylesheet" href="theme.css" />
+    <style>
+      body { background: var(--fs-bg-sunken); }
+      .wrap { max-width: 560px; margin: 0 auto; padding: 40px 20px 80px; }
+      .card {
+        background: var(--fs-surface); border: 1px solid var(--fs-border);
+        border-radius: 14px; padding: 22px 24px; margin-bottom: 16px;
+      }
+      h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -0.02em; }
+      h2 { font-size: 15px; margin: 0 0 10px; }
+      .lede { color: var(--fs-text-dim); margin: 0 0 26px; }
+      .step { display: flex; gap: 10px; align-items: baseline; margin-bottom: 14px; }
+      .num {
+        flex: none; width: 22px; height: 22px; border-radius: 50%; font-size: 12px;
+        display: grid; place-items: center; color: #fff; font-weight: 700;
+        background: linear-gradient(135deg, var(--fs-flame), var(--fs-violet));
+      }
+      .note {
+        font-size: 12px; color: var(--fs-text-dim); border-left: 3px solid var(--fs-violet);
+        padding: 8px 12px; background: var(--fs-bg-sunken); border-radius: 0 8px 8px 0;
+      }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="fs-brand" style="margin-bottom:18px">
+        <span class="fs-brand__mark" style="width:28px;height:28px"></span>
+        <span style="font-size:18px">FireSync</span>
+      </div>
+      <h1>Bring your Firefox logins into this browser</h1>
+      <p class="lede">
+        Two steps: pick a passphrase that protects the vault on this device, then
+        connect the Mozilla account you sync Firefox with.
+      </p>
+
+      <section class="card" id="step-vault">
+        <div class="step"><span class="num">1</span><h2>Protect this device</h2></div>
+        <p class="muted" style="font-size:12px;margin-top:0">
+          This passphrase encrypts everything FireSync stores on disk. It is not your
+          Mozilla password, and it never leaves this machine — there is no recovery.
+        </p>
+        <form id="vault-form">
+          <div class="field">
+            <label for="pass1">FireSync passphrase</label>
+            <input type="password" id="pass1" autocomplete="new-password" />
+          </div>
+          <div class="field">
+            <label for="pass2">Confirm passphrase</label>
+            <input type="password" id="pass2" autocomplete="new-password" />
+          </div>
+          <button class="primary" type="submit">Create vault</button>
+          <div class="error" id="vault-error"></div>
+        </form>
+      </section>
+
+      <section class="card" id="step-account" hidden>
+        <div class="step"><span class="num">2</span><h2>Connect your Mozilla account</h2></div>
+        <form id="account-form">
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="password">Mozilla account password</label>
+            <input type="password" id="password" autocomplete="current-password" />
+          </div>
+          <button class="primary" type="submit">Connect</button>
+          <div class="error" id="account-error"></div>
+        </form>
+
+        <div id="second-factor" hidden style="margin-top:14px">
+          <hr />
+          <div class="field">
+            <label for="code" id="code-label">Verification code</label>
+            <input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" />
+          </div>
+          <div class="row">
+            <button class="primary" id="submit-code">Confirm</button>
+            <button id="resend" hidden>Resend email</button>
+          </div>
+        </div>
+
+        <p class="note" style="margin-top:16px">
+          FireSync uses your password only to obtain a Sync token from Mozilla, then
+          immediately destroys the session. Only a scoped refresh token and your Sync
+          key are kept, encrypted with the passphrase from step 1.
+        </p>
+      </section>
+
+      <section class="card" id="step-done" hidden>
+        <div class="step"><span class="num">✓</span><h2>You're connected</h2></div>
+        <p class="muted" style="font-size:13px">
+          FireSync is syncing now. Two things worth doing next:
+        </p>
+        <ul class="muted" style="font-size:13px;padding-left:18px">
+          <li>Turn off Chrome's own password manager at
+            <code>chrome://settings/autofill</code> so you don't get two prompts.</li>
+          <li>Pin FireSync to the toolbar for quick unlocking.</li>
+        </ul>
+        <button class="primary" id="finish">Open FireSync</button>
+      </section>
+    </div>
+    <script type="module" src="onboarding.js"></script>
+  </body>
+</html>

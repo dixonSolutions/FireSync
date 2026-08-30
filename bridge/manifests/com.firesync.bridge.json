@@ -1,0 +1,8 @@
+{
+  "_comment": "Native messaging host manifest template. bridge/install.sh fills in path and allowed_origins.",
+  "name": "com.firesync.bridge",
+  "description": "FireSync bridge — local Firefox profile import, OS keychain, loopback OAuth",
+  "path": "HOST_PATH_HERE",
+  "type": "stdio",
+  "allowed_origins": ["chrome-extension://EXTENSION_ID_HERE/"]
+}

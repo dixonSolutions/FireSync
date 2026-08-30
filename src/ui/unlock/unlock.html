@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Unlock FireSync</title>
+    <link rel="stylesheet" href="theme.css" />
+    <style>
+      body { width: 340px; padding: 18px 16px; }
+      .fs-brand { margin-bottom: 14px; }
+      p { color: var(--fs-text-dim); font-size: 12px; margin: 0 0 14px; }
+    </style>
+  </head>
+  <body>
+    <div class="fs-brand"><span class="fs-brand__mark"></span><span>FireSync</span></div>
+    <p>Enter your FireSync passphrase to unlock the vault on this device.</p>
+    <form id="form">
+      <div class="field">
+        <label for="passphrase">Passphrase</label>
+        <input type="password" id="passphrase" autocomplete="off" autofocus />
+      </div>
+      <button class="primary" type="submit" id="submit" style="width:100%">Unlock</button>
+    </form>
+    <div class="error" id="error"></div>
+    <script type="module" src="unlock.js"></script>
+  </body>
+</html>

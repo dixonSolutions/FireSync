@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+coverage/
+*.crx
+*.pem
+*.zip
+.DS_Store
+.env
+.env.*
+*.log
+.vitest/
+firesync-secrets.json

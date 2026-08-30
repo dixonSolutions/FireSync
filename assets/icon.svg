@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="FireSync">
+  <title>FireSync</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF8A3D"/>
+      <stop offset="0.45" stop-color="#FF3D7F"/>
+      <stop offset="1" stop-color="#9B5DE5"/>
+    </linearGradient>
+    <linearGradient id="flameInner" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#FF3D7F" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="28" fill="url(#tile)"/>
+
+  <!-- the sync cycle: two arcs chasing each other around the flame -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" opacity="0.92">
+    <path d="M22.7 49 A44 44 0 0 1 105.3 49"/>
+    <path d="M105.3 79 A44 44 0 0 1 22.7 79"/>
+  </g>
+  <g fill="#FFFFFF" opacity="0.92">
+    <polygon points="108.4,57.5 98.7,51.4 111.9,46.6"/>
+    <polygon points="19.6,70.5 29.3,76.6 16.1,81.4"/>
+  </g>
+
+  <!-- the flame: what is being carried across -->
+  <path d="M64 27 C66 40 77 47 80 59 C84 75 75 89 63 89 C51 89 42 78 45 65 C47 57 52 52 56 48 C56 56 59 60 62 62 C60 51 62 39 64 27 Z" fill="#FFFFFF"/>
+  <path d="M65 56 C67 63 72 66 72 72 A9 9 0 0 1 54 72 C54 67 58 63 61 57 C61 62 63 64 65 65 Z" fill="url(#flameInner)"/>
+</svg>

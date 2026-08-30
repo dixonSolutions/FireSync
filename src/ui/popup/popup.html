@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>FireSync</title>
+    <link rel="stylesheet" href="theme.css" />
+    <style>
+      body { width: 340px; }
+      header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--fs-border); }
+      main { padding: 12px 14px; }
+      .status { font-size: 12px; color: var(--fs-text-dim); }
+      ul { list-style: none; margin: 10px 0 0; padding: 0; max-height: 260px; overflow-y: auto; }
+      li { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; }
+      li:hover { background: var(--fs-bg-sunken); }
+      .user { font-weight: 600; }
+      .origin { font-size: 11px; color: var(--fs-text-dim); }
+      .grow { flex: 1; min-width: 0; }
+      .grow > div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      footer { padding: 10px 14px; border-top: 1px solid var(--fs-border); display: flex; gap: 8px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="fs-brand__mark"></span>
+      <div class="grow">
+        <div style="font-weight:650">FireSync</div>
+        <div class="status" id="status">Checking…</div>
+      </div>
+      <button class="ghost" id="lock" title="Lock the vault">Lock</button>
+    </header>
+    <main>
+      <input type="text" id="filter" placeholder="Filter logins…" autocomplete="off" />
+      <ul id="list"></ul>
+      <div class="error" id="error"></div>
+    </main>
+    <footer>
+      <button class="primary" id="sync">Sync now</button>
+      <span class="spacer"></span>
+      <button id="options">Settings</button>
+    </footer>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

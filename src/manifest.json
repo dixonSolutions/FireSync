@@ -1,0 +1,75 @@
+{
+  "manifest_version": 3,
+  "name": "FireSync",
+  "short_name": "FireSync",
+  "version": "0.1.0",
+  "description": "Sign in to your Mozilla account and use your Firefox passwords, autofill and per-site preferences in Chrome and Chromium.",
+  "minimum_chrome_version": "116",
+  "author": "FireSync contributors",
+  "homepage_url": "https://github.com/firesync/firesync",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "FireSync",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs",
+    "webNavigation",
+    "idle",
+    "scripting",
+    "clipboardWrite"
+  ],
+  "optional_permissions": [
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "https://api.accounts.firefox.com/*",
+    "https://accounts.firefox.com/*",
+    "https://oauth.accounts.firefox.com/*",
+    "https://token.services.mozilla.com/*",
+    "https://*.sync.services.mozilla.com/*",
+    "https://*.services.mozilla.com/*",
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "exclude_matches": [
+        "https://accounts.firefox.com/*",
+        "https://api.accounts.firefox.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true,
+      "match_about_blank": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["menu.html", "menu-button.html", "notification.html", "theme.css", "menu.js", "menu-button.js", "notification.js"],
+      "matches": ["http://*/*", "https://*/*"],
+      "use_dynamic_url": true
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-ancestors 'self' http://* https://*"
+  }
+}

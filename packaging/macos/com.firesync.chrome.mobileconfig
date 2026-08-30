@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FireSync policy profile for Google Chrome on macOS.
+
+  macOS, like Windows, only allows OFF-STORE extension installs on a MANAGED
+  device: enrolled via MDM, or in Chrome Enterprise Core. Installing this
+  profile by hand on an unmanaged Mac sets the preferences but Chrome will
+  still refuse the off-store install. See docs/DISTRIBUTION.md#macos.
+
+  Replace EXTENSION_ID_HERE and the update URL before deploying.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>PayloadType</key>
+      <string>com.google.Chrome</string>
+      <key>PayloadIdentifier</key>
+      <string>com.firesync.chrome.policy</string>
+      <key>PayloadUUID</key>
+      <string>7F3C2C1E-3C4E-4C1F-9C2B-FIRESYNC00001</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>PayloadDisplayName</key>
+      <string>FireSync — Chrome policy</string>
+
+      <key>ExtensionSettings</key>
+      <dict>
+        <key>EXTENSION_ID_HERE</key>
+        <dict>
+          <key>installation_mode</key>
+          <string>normal_installed</string>
+          <key>update_url</key>
+          <string>https://example.invalid/firesync/update.xml</string>
+          <key>override_update_url</key>
+          <true/>
+          <key>toolbar_pin</key>
+          <string>force_pinned</string>
+        </dict>
+      </dict>
+
+      <key>PasswordManagerEnabled</key>
+      <false/>
+      <key>AutofillAddressEnabled</key>
+      <false/>
+      <key>AutofillCreditCardEnabled</key>
+      <false/>
+    </dict>
+  </array>
+  <key>PayloadDisplayName</key>
+  <string>FireSync</string>
+  <key>PayloadIdentifier</key>
+  <string>com.firesync.chrome</string>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadUUID</key>
+  <string>7F3C2C1E-3C4E-4C1F-9C2B-FIRESYNC00000</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+  <key>PayloadScope</key>
+  <string>System</string>
+</dict>
+</plist>

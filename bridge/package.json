@@ -1,0 +1,9 @@
+{
+  "name": "firesync-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Optional native messaging host for FireSync: local Firefox profile import, OS keychain, loopback OAuth.",
+  "engines": { "node": ">=22.5" },
+  "bin": { "firesync-bridge": "./host.mjs" }
+}

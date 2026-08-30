@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>FireSync logins</title>
+    <link rel="stylesheet" href="theme.css" />
+    <style>
+      html, body { background: transparent; }
+      .card {
+        background: var(--fs-surface);
+        border: 1px solid var(--fs-border);
+        border-radius: var(--fs-radius);
+        box-shadow: var(--fs-shadow);
+        overflow: hidden;
+      }
+      .head {
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 10px; border-bottom: 1px solid var(--fs-border);
+        font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+        color: var(--fs-text-dim);
+      }
+      ul { list-style: none; margin: 0; padding: 4px; max-height: 232px; overflow-y: auto; }
+      li button {
+        display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+        width: 100%; text-align: left; border: 0; background: transparent;
+        padding: 7px 8px; border-radius: 7px;
+      }
+      li button:hover, li button:focus-visible { background: var(--fs-bg-sunken); }
+      .user { font-weight: 600; }
+      .origin { font-size: 11px; color: var(--fs-text-dim); }
+      .empty { padding: 14px 12px; color: var(--fs-text-dim); }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="head"><span class="fs-brand__mark" style="width:12px;height:12px"></span> FireSync</div>
+      <ul id="list"></ul>
+      <div class="empty" id="empty" hidden></div>
+    </div>
+    <script type="module" src="menu.js"></script>
+  </body>
+</html>

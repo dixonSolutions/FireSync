@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: typecheck · test · build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22.5 is the floor for node:sqlite, which the bridge tests need.
+        node: ['22.x', '24.x']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Render brand assets
+        run: npm run assets
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+
+      - name: Build
+        run: npm run build
+
+      - name: Check the manifest is valid
+        run: |
+          node -e "
+            const m = require('./dist/manifest.json');
+            if (m.manifest_version !== 3) throw new Error('not MV3');
+            if (!m.background?.service_worker) throw new Error('no service worker');
+            for (const size of ['16','32','48','128']) {
+              require('node:fs').accessSync('dist/' + m.icons[size]);
+            }
+            console.log('manifest ok:', m.name, m.version);
+          "
+
+      - name: Bridge self-test
+        run: node bridge/host.mjs --self-test
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.node == '24.x'
+        with:
+          name: firesync-dist
+          path: dist/
+          retention-days: 14
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: npm
+      - run: npm ci
+      - run: npm run coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 14

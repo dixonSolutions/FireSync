@@ -1,0 +1,77 @@
+# FAQ
+
+**Does this send my passwords anywhere?**
+To Mozilla's Sync servers, encrypted with your own Sync key, exactly as Firefox does. There
+is no FireSync server. Mozilla cannot read the contents, and neither can we — there is no
+"we" in the data path.
+
+**Is this Mozilla software?**
+No. It is an independent project using a documented, open protocol. Not affiliated with or
+endorsed by Mozilla or Google.
+
+**Why not just export a CSV from Firefox?**
+That is a one-time copy that goes stale the moment you save a password anywhere. FireSync
+keeps both browsers in step in both directions. If you do want a one-time copy, the
+[bridge](BRIDGE.md) does it locally with no account involved.
+
+**Why does it need my Mozilla password?**
+For the current sign-in flow, to derive `authPW` locally — the password itself is never
+sent, never stored, and discarded immediately. The better flow, where you authenticate on
+Mozilla's own page and FireSync never sees the password at all, is written and tested but
+blocked on Mozilla registering an OAuth client. See
+[PROTOCOL.md](PROTOCOL.md#oauth-client-identity).
+
+**Why a separate FireSync passphrase?**
+Because the alternative is worse. If the vault key came from your Mozilla password, changing
+that password would orphan the local vault, and one compromise would become two.
+
+**I forgot the FireSync passphrase.**
+There is no recovery — that is what "encrypted at rest" means. Reset the vault and reconnect
+your account; your logins are on Mozilla's servers, not only on this machine.
+
+**Why can't I install it on my normal Chrome?**
+Chrome requires a Web Store-issued publisher proof inside every CRX and refuses anything
+else off-store. The exemptions are enterprise policy on a managed browser, and developer
+mode. Chromium has no such requirement, which is why it is the primary target. Full detail
+in [DISTRIBUTION.md](DISTRIBUTION.md).
+
+**Why am I getting two save-password prompts?**
+Chrome's own manager is still on. Turn it off at `chrome://settings/autofill`, or deploy the
+policy files in `packaging/`, which do it for you.
+
+**Why doesn't FireSync appear in Chrome's autofill dropdown?**
+It cannot. `chrome.passwordsPrivate` and `chrome.autofillPrivate` are restricted to
+extensions shipped inside the browser. Every third-party password manager draws its own UI
+for the same reason.
+
+**Why are credit cards read-only?**
+Firefox also protects card numbers with an OS keystore and the payload schema has changed
+more than once. Writing a record Firefox cannot read back would destroy payment data with no
+undo, so FireSync will not write there until someone has verified a round-trip on a real
+account.
+
+**Do I need the bridge?**
+No. It is optional and nothing in the core path uses it. It adds local Firefox import, OS
+keychain storage, and a future sign-in route. See [BRIDGE.md](BRIDGE.md).
+
+**Is the borrowed OAuth client id a problem?**
+It is the project's largest external risk, and it is stated as such in the README, the
+protocol reference and the security document. Mozilla offers no way to register a client, so
+every third-party Sync client does this. It works today; it could stop. The bridge's local
+import path exists partly as insurance.
+
+**Does it work with a Mozilla account that has 2FA?**
+Yes — TOTP, emailed confirmation codes, and the new-device unblock flow are all handled.
+
+**What about Firefox's primary password?**
+Irrelevant to sync (Sync uses your account password), but the bridge's local import will ask
+for it, because that is what protects `key4.db` on disk.
+
+**Can I use it on more than one machine?**
+Yes. Each machine has its own vault passphrase and its own local vault; they converge
+through Mozilla's servers like any two Firefox installs.
+
+**Will you publish it to the Chrome Web Store?**
+Not currently the plan — that is the constraint the whole distribution design is built
+around. An *unlisted* listing remains the pragmatic fallback for people who need stock
+Chrome; see [DISTRIBUTION.md](DISTRIBUTION.md#recommended-paths-in-order).

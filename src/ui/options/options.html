@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>FireSync settings</title>
+    <link rel="stylesheet" href="theme.css" />
+    <style>
+      body { background: var(--fs-bg-sunken); }
+      .wrap { max-width: 620px; margin: 0 auto; padding: 32px 20px 80px; }
+      .card {
+        background: var(--fs-surface); border: 1px solid var(--fs-border);
+        border-radius: 14px; padding: 20px 22px; margin-bottom: 16px;
+      }
+      h2 { font-size: 15px; margin: 0 0 14px; }
+      .setting { display: flex; align-items: flex-start; gap: 12px; padding: 9px 0; }
+      .setting + .setting { border-top: 1px solid var(--fs-border); }
+      .setting .grow { flex: 1; }
+      .setting .grow div:first-child { font-weight: 550; }
+      .setting .grow div:last-child { font-size: 12px; color: var(--fs-text-dim); }
+      select, input[type="number"] { width: auto; min-width: 130px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--fs-border); }
+      th { color: var(--fs-text-dim); font-weight: 550; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="fs-brand" style="margin-bottom:18px">
+        <span class="fs-brand__mark" style="width:24px;height:24px"></span>
+        <span style="font-size:16px">FireSync settings</span>
+      </div>
+
+      <section class="card">
+        <h2>Autofill</h2>
+        <div class="setting">
+          <div class="grow">
+            <div>Inline autofill menu</div>
+            <div>The in-field button and credential list FireSync draws itself.</div>
+          </div>
+          <select id="inlineMenu">
+            <option value="on">On</option>
+            <option value="button-only">Button only</option>
+            <option value="off">Off</option>
+          </select>
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Fill automatically on page load</div>
+            <div>Off by default. Silent filling is how clickjacking harvests credentials.</div>
+          </div>
+          <input type="checkbox" id="autoFillOnLoad" />
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Offer to save new logins</div>
+            <div>Shows FireSync's own save prompt after a successful sign-in.</div>
+          </div>
+          <input type="checkbox" id="savePrompt" />
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Default URI match</div>
+            <div>How a stored origin is compared with the page you are on.</div>
+          </div>
+          <select id="defaultMatchStrategy">
+            <option value="domain">Base domain</option>
+            <option value="host">Exact host</option>
+            <option value="startsWith">Starts with</option>
+            <option value="exact">Exact URL</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Security</h2>
+        <div class="setting">
+          <div class="grow">
+            <div>Lock after inactivity</div>
+            <div>Minutes. 0 disables auto-locking, which is not recommended.</div>
+          </div>
+          <input type="number" id="lockTimeoutMinutes" min="0" max="480" />
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Lock when the browser closes</div>
+            <div>Session storage is cleared on exit regardless; this is belt and braces.</div>
+          </div>
+          <input type="checkbox" id="lockOnBrowserClose" />
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Change passphrase</div>
+            <div>Re-encrypts the vault, tokens and sync state under a new key.</div>
+          </div>
+          <button id="changePassphrase">Change…</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Sync</h2>
+        <div class="setting">
+          <div class="grow">
+            <div>Sync interval</div>
+            <div>Minutes between background syncs.</div>
+          </div>
+          <input type="number" id="syncIntervalMinutes" min="0" max="1440" />
+        </div>
+        <div class="setting">
+          <div class="grow"><div>Passwords</div><div>The <code>passwords</code> collection.</div></div>
+          <input type="checkbox" id="engine-passwords" />
+        </div>
+        <div class="setting">
+          <div class="grow"><div>Addresses</div><div>The <code>addresses</code> collection.</div></div>
+          <input type="checkbox" id="engine-addresses" />
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Credit cards <span class="muted">(experimental, read-only)</span></div>
+            <div>Firefox also protects card numbers with an OS keystore; FireSync never writes here.</div>
+          </div>
+          <input type="checkbox" id="engine-creditcards" />
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Sync FireSync's own site settings</div>
+            <div>Uses a private <code>firesync-prefs</code> collection Firefox ignores.</div>
+          </div>
+          <input type="checkbox" id="syncSitePreferences" />
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Site settings</h2>
+        <table>
+          <thead><tr><th>Origin</th><th>Never save</th><th>Menu</th><th>Match</th><th></th></tr></thead>
+          <tbody id="sites"></tbody>
+        </table>
+        <p class="muted" id="sites-empty" style="font-size:12px">No per-site overrides yet.</p>
+      </section>
+
+      <section class="card">
+        <h2>Import from Firefox <span class="muted" style="font-weight:400">(optional bridge)</span></h2>
+        <p class="muted" style="font-size:12px;margin-top:0">
+          If the FireSync bridge is installed, logins can be read straight out of a local
+          Firefox profile — no Mozilla account, no network. See <code>bridge/README.md</code>.
+        </p>
+        <div class="setting">
+          <div class="grow">
+            <div id="bridge-state">Checking…</div>
+            <div id="bridge-detail"></div>
+          </div>
+          <button id="bridge-enable">Enable</button>
+        </div>
+        <table id="bridge-profiles" hidden>
+          <thead><tr><th>Profile</th><th>Logins</th><th></th></tr></thead>
+          <tbody id="bridge-profile-rows"></tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Account</h2>
+        <div class="setting">
+          <div class="grow"><div id="account-email">Not connected</div><div id="account-detail"></div></div>
+          <button class="danger" id="disconnect">Disconnect</button>
+        </div>
+      </section>
+
+      <div class="error" id="error"></div>
+    </div>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "FireSync enterprise policy for Google Chrome on Linux.",
+    "Install to /etc/opt/chrome/policies/managed/firesync.json (Chrome) or",
+    "/etc/chromium/policies/managed/firesync.json (Chromium), then restart the browser.",
+    "Replace EXTENSION_ID_HERE with the id printed by `npm run pack`, and the",
+    "update_url with wherever you host build/update.xml.",
+    "Linux needs no domain join or MDM enrolment for off-store installs."
+  ],
+  "ExtensionSettings": {
+    "EXTENSION_ID_HERE": {
+      "installation_mode": "normal_installed",
+      "update_url": "https://example.invalid/firesync/update.xml",
+      "override_update_url": true,
+      "toolbar_pin": "force_pinned"
+    }
+  },
+  "PasswordManagerEnabled": false,
+  "AutofillAddressEnabled": false,
+  "AutofillCreditCardEnabled": false
+}

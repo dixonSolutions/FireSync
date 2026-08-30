@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>FireSync</title>
+    <link rel="stylesheet" href="theme.css" />
+    <style>
+      html, body { background: transparent; }
+      .card {
+        background: var(--fs-surface);
+        border: 1px solid var(--fs-border);
+        border-radius: var(--fs-radius);
+        box-shadow: var(--fs-shadow);
+        padding: 12px 14px;
+      }
+      h1 { font-size: 13px; margin: 0 0 4px; }
+      p { margin: 0 0 10px; color: var(--fs-text-dim); font-size: 12px; word-break: break-all; }
+      .actions { display: flex; gap: 8px; align-items: center; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="fs-brand" style="margin-bottom:6px">
+        <span class="fs-brand__mark"></span><span>FireSync</span>
+      </div>
+      <h1 id="title">Save this login?</h1>
+      <p id="detail"></p>
+      <div class="actions">
+        <button class="primary" id="save">Save</button>
+        <button id="never">Never for this site</button>
+        <span class="spacer"></span>
+        <button class="ghost" id="dismiss" aria-label="Dismiss">✕</button>
+      </div>
+    </div>
+    <script type="module" src="notification.js"></script>
+  </body>
+</html>
