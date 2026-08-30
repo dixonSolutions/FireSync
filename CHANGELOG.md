@@ -4,6 +4,26 @@ All notable changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] — 2026-08-30
+
+### Added
+
+- Settings → Account links straight to Mozilla's own pages for account settings and
+  Connected Services. Everything about the account — password, two-factor, recovery keys,
+  revoking this connection — is Mozilla's to handle, and FireSync should not reimplement any
+  of it.
+
+### Changed
+
+- Documented why the vault UI is FireSync's own rather than an embedded Mozilla one: there is
+  no Mozilla-hosted password UI to embed. `about:logins` is browser-internal and cannot be
+  loaded in Chrome, and the standalone Lockwise app reached end of life in December 2021 with
+  its features folded back into Firefox. A hosted page could not decrypt anything anyway,
+  since the Sync key never leaves the extension.
+- Update timing corrected from a measurement on a real profile: the browser downloads an
+  update in seconds but stages it, activating on the next restart, because it will not swap
+  an extension that is in use.
+
 ## [0.4.0] — 2026-08-30
 
 ### Fixed

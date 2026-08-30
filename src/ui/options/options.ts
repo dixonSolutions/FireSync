@@ -127,6 +127,24 @@ async function renderProtection(): Promise<void> {
   el('lockTimeoutMinutes').closest('.setting')?.classList.toggle('muted', device);
 }
 
+/**
+ * Account management belongs to Mozilla, not to us.
+ *
+ * There is no Mozilla-hosted password UI to embed — Lockwise reached end of life
+ * in 2021 and its features moved into Firefox's own `about:logins`, which is
+ * browser-internal and cannot be loaded here. But everything about the *account*
+ * does have a hosted page, and reimplementing any of it would mean handling
+ * credentials FireSync deliberately never touches.
+ */
+for (const [id, url] of [
+  ['open-fxa-settings', 'https://accounts.firefox.com/settings'],
+  ['open-fxa-services', 'https://accounts.firefox.com/settings#connected-services'],
+] as const) {
+  el(id).addEventListener('click', () => {
+    void chrome.tabs.create({ url });
+  });
+}
+
 el('disconnect').addEventListener('click', async () => {
   if (!confirm('Disconnect the Mozilla account? Local logins stay in the vault.')) return;
   try {

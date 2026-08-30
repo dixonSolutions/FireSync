@@ -165,6 +165,13 @@ you.** That is not an assumption — it was tested: a new version was published,
 was restarted, and it fetched and installed the update unattended in about six seconds.
 Chrome checks on startup and roughly every five hours thereafter.
 
+**One timing detail worth knowing.** The browser *downloads* an update promptly — measured at
+about three seconds on a real profile — but it does not swap the running extension while that
+extension is in use, and an MV3 extension with a service worker and content scripts always
+is. The new version is staged and **activates on the next browser restart**. So "auto-update"
+means "you will be on the new version next time you start the browser", not "within minutes
+of a release". FireSync's own banner says *installs on restart* for exactly this reason.
+
 **If you loaded it unpacked, nothing updates it.** Chrome has no mechanism for that, and no
 extension can install a new version of itself — that hole is deliberately closed. This is
 the main practical reason to prefer the one-command install.

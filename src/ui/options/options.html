@@ -206,6 +206,22 @@
           <div class="grow"><div id="account-email">Not connected</div><div id="account-detail"></div></div>
           <button class="danger" id="disconnect">Disconnect</button>
         </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Manage at Mozilla</div>
+            <div>Password, two-factor, recovery keys and connected devices all live in your
+                 Mozilla account. FireSync does not reimplement any of it.</div>
+          </div>
+          <button id="open-fxa-settings">Account settings</button>
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Revoke this connection</div>
+            <div>FireSync appears under Connected Services. Removing it there invalidates the
+                 token immediately, from any device.</div>
+          </div>
+          <button id="open-fxa-services">Connected services</button>
+        </div>
       </section>
 
       <div class="error" id="error"></div>

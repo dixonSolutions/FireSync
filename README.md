@@ -173,7 +173,9 @@ Known gaps, stated plainly:
 
 **Installed with `install.sh`?** The browser genuinely auto-updates FireSync — verified by
 publishing a new version, restarting the browser, and watching it install unattended in about
-six seconds. Chrome checks on startup and roughly every five hours.
+six seconds. Chrome checks on startup and roughly every five hours. It downloads promptly
+but stages the new version and activates it on the next browser restart, because it will not
+swap an extension that is in use.
 
 **Loaded unpacked?** Nothing updates it. Chrome has no mechanism, and no extension can
 install a new version of itself.

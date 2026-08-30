@@ -51,6 +51,22 @@ in [DISTRIBUTION.md](DISTRIBUTION.md).
 Chrome's own manager is still on. Turn it off at `chrome://settings/autofill`, or deploy the
 policy files in `packaging/`, which do it for you.
 
+**Why build a password UI at all — why not embed or redirect to Mozilla's?**
+Because there isn't one to embed. Firefox's password manager is `about:logins`, a
+browser-internal page that only Firefox can render; Chrome cannot load it. The standalone
+Mozilla password app, Lockwise, reached end of life in December 2021 and its features were
+folded back into Firefox itself. `accounts.firefox.com` manages the *account* — password,
+two-factor, devices — not the passwords in it.
+
+Even if a hosted page existed, it could not decrypt anything. Your Sync key never leaves the
+extension, and handing it to a page in an iframe would defeat the entire point of holding it
+locally.
+
+What FireSync *does* delegate is everything about the account: signing in, two-factor,
+recovery keys, and revoking access all happen on Mozilla's pages, and Settings links straight
+to them. Reimplementing those would mean handling credentials FireSync goes out of its way
+never to touch.
+
 **Why doesn't FireSync appear in Chrome's autofill dropdown?**
 It cannot. `chrome.passwordsPrivate` and `chrome.autofillPrivate` are restricted to
 extensions shipped inside the browser. Every third-party password manager draws its own UI
