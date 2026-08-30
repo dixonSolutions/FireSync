@@ -79,21 +79,53 @@ for (const engine of ['passwords', 'addresses', 'creditcards'] as const) {
   });
 }
 
-el('changePassphrase').addEventListener('click', async () => {
-  const current = prompt('Current FireSync passphrase');
-  if (!current) return;
-  const next = prompt('New passphrase (at least 10 characters)');
-  if (!next || next.length < 10) {
+/**
+ * Passphrase protection is opt-in. The default device key needs nothing from the
+ * user; this trades convenience for resistance to offline disk analysis.
+ */
+el('protection').addEventListener('click', async () => {
+  const status = await sendMessage({ type: 'vault/status' });
+
+  if (status.protection === 'passphrase') {
+    const current = prompt('Current FireSync passphrase (to turn protection off)');
+    if (!current) return;
+    try {
+      await sendMessage({ type: 'vault/setPassphrase', passphrase: null, current });
+      errorEl.textContent = 'Passphrase removed — back to the device key.';
+    } catch (error) {
+      showError(error);
+    }
+    await renderProtection();
+    return;
+  }
+
+  const next = prompt('Choose a passphrase (at least 10 characters). There is no recovery.');
+  if (!next) return;
+  if (next.length < 10) {
     showError('Passphrase must be at least 10 characters.');
     return;
   }
   try {
-    await sendMessage({ type: 'vault/changePassphrase', current, next });
-    errorEl.textContent = 'Passphrase changed.';
+    await sendMessage({ type: 'vault/setPassphrase', passphrase: next });
+    errorEl.textContent = 'Passphrase set. FireSync will ask for it after it locks.';
   } catch (error) {
     showError(error);
   }
+  await renderProtection();
 });
+
+async function renderProtection(): Promise<void> {
+  const status = await sendMessage({ type: 'vault/status' });
+  const device = status.protection === 'device';
+  el('protection-state').textContent = device
+    ? 'Device key (no passphrase)'
+    : 'Passphrase';
+  el('protection-detail').textContent = device
+    ? 'A non-extractable key held by the browser. Nothing to remember, nothing to type.'
+    : 'Stronger against someone copying your profile off disk. Locks when idle.';
+  el<HTMLButtonElement>('protection').textContent = device ? 'Add a passphrase…' : 'Remove…';
+  el('lockTimeoutMinutes').closest('.setting')?.classList.toggle('muted', device);
+}
 
 el('disconnect').addEventListener('click', async () => {
   if (!confirm('Disconnect the Mozilla account? Local logins stay in the vault.')) return;
@@ -307,5 +339,6 @@ el('bridge-enable').addEventListener('click', async () => {
 });
 
 void render().catch(showError);
+void renderProtection().catch(showError);
 void renderUpdates().catch(showError);
 void renderBridge().catch(showError);

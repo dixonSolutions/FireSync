@@ -49,11 +49,11 @@ one-command install above works there too, Developer mode included.
 
 ### Then, once
 
-1. **Choose a FireSync passphrase.** It encrypts the vault on this device. It is not your
-   Mozilla password, and there is no recovery.
-2. **Sign in to your Mozilla account.** Two-factor codes and confirmation emails are
-   handled.
-3. **Turn off the browser's own password manager** at `chrome://settings/autofill` —
+1. **Sign in to your Mozilla account.** One button; you authenticate on Mozilla's own
+   page, so FireSync never sees your password. Two-factor codes and confirmation emails are
+   handled there.
+
+2. **Turn off the browser's own password manager** at `chrome://settings/autofill` —
    otherwise every login form gives you two save prompts. The one-command install already
    did this for you.
 
@@ -89,8 +89,9 @@ file, and no third party holding your vault.
   resolution keyed on `timePasswordChanged` — the same rule Firefox itself uses.
 - **Autofill, save prompts and per-site preferences**, drawn by FireSync itself because
   Chrome does not let extensions reuse its native ones (see [why](#the-two-hard-limits)).
-- **A local vault encrypted at rest** with a passphrase that never leaves the device, and
-  auto-locking that actually clears the key from memory.
+- **A local vault encrypted at rest**, with nothing for you to invent or remember: the key
+  is a non-extractable `CryptoKey` the browser holds for this extension. A passphrase is
+  available in Settings for anyone who wants a stolen profile directory to be inert.
 - **An optional local bridge** that imports your Firefox logins straight off disk — no
   Mozilla account, no network — plus OS-keychain storage for the vault key.
 - **Off-store distribution**: a signed CRX, a self-hosted update manifest, and ready-made

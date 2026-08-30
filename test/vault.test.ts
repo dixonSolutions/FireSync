@@ -4,6 +4,7 @@ import type { MemoryArea } from '../src/common/storage.ts';
 import {
   checkVerifier,
   deriveVaultKey,
+  deriveVaultKeyBytes,
   makeVerifier,
   newKdfParams,
   seal,
@@ -13,23 +14,26 @@ import {
   WrongPassphraseError,
 } from '../src/vault/crypto.ts';
 import { STORAGE_KEY, VaultStore } from '../src/vault/store.ts';
+import { MemoryKeyStore, generateDeviceKey } from '../src/vault/device-key.ts';
 
 /** Low iteration count keeps the suite fast; production uses 600 000. */
 const FAST_KDF = 120_000;
 const PASSPHRASE = 'correct horse battery staple';
 
 describe('vault crypto', () => {
-  it('derives a 32-byte key and rejects a weak iteration count', async () => {
+  it('derives a non-extractable AES key and rejects a weak iteration count', async () => {
     const params = newKdfParams(FAST_KDF);
-    expect(await deriveVaultKey(PASSPHRASE, params)).toHaveLength(32);
-    await expect(deriveVaultKey(PASSPHRASE, { ...params, iterations: 1000 })).rejects.toThrow(
-      /refusing to derive/,
-    );
+    const key = await deriveVaultKey(PASSPHRASE, params);
+    expect(key.algorithm.name).toBe('AES-GCM');
+    expect(key.extractable).toBe(false);
+    await expect(
+      deriveVaultKeyBytes(PASSPHRASE, { ...params, iterations: 1000 }),
+    ).rejects.toThrow(/refusing to derive/);
   });
 
   it('salts each vault so identical passphrases give different keys', async () => {
-    const a = await deriveVaultKey(PASSPHRASE, newKdfParams(FAST_KDF));
-    const b = await deriveVaultKey(PASSPHRASE, newKdfParams(FAST_KDF));
+    const a = await deriveVaultKeyBytes(PASSPHRASE, newKdfParams(FAST_KDF));
+    const b = await deriveVaultKeyBytes(PASSPHRASE, newKdfParams(FAST_KDF));
     expect(a).not.toEqual(b);
   });
 
@@ -70,8 +74,8 @@ describe('VaultStore', () => {
 
   beforeEach(async () => {
     areas = memoryStorageAreas();
-    vault = new VaultStore(areas);
-    await vault.create(PASSPHRASE, FAST_KDF);
+    vault = new VaultStore(areas, new MemoryKeyStore());
+    await vault.create({ passphrase: PASSPHRASE, iterations: FAST_KDF });
   });
 
   it('starts unlocked after creation and reports its state', async () => {
@@ -81,7 +85,7 @@ describe('VaultStore', () => {
   });
 
   it('refuses to create a second vault over an existing one', async () => {
-    await expect(vault.create(PASSPHRASE, FAST_KDF)).rejects.toThrow(/already exists/);
+    await expect(vault.create({ passphrase: PASSPHRASE })).rejects.toThrow(/already exists/);
   });
 
   it('writes only ciphertext to local storage', async () => {
@@ -131,7 +135,7 @@ describe('VaultStore', () => {
       connectedAt: 1,
     });
 
-    await vault.changePassphrase(PASSPHRASE, 'a brand new passphrase');
+    await vault.setProtection({ passphrase: 'a brand new passphrase' }, PASSPHRASE);
     await vault.lock();
 
     await expect(vault.unlock(PASSPHRASE)).rejects.toThrow(WrongPassphraseError);
@@ -277,5 +281,124 @@ describe('VaultStore', () => {
       expect(reloaded.lastSyncAt).toBe(1234);
       expect(reloaded.collections['passwords']).toEqual({ lastModified: 99.5, syncId: 'abc' });
     });
+  });
+});
+
+describe('device-key protection (the default)', () => {
+  let areas: ReturnType<typeof memoryStorageAreas>;
+  let keys: MemoryKeyStore;
+  let vault: VaultStore;
+
+  beforeEach(async () => {
+    areas = memoryStorageAreas();
+    keys = new MemoryKeyStore();
+    vault = new VaultStore(areas, keys);
+    await vault.create();
+  });
+
+  it('needs nothing from the user and is immediately usable', async () => {
+    expect(await vault.protection()).toBe('device');
+    expect(await vault.isInitialized()).toBe(true);
+    expect(await vault.isUnlocked()).toBe(true);
+    await expect(vault.listPasswords()).resolves.toEqual([]);
+  });
+
+  it('ensure() creates a vault silently and is idempotent', async () => {
+    const fresh = new VaultStore(memoryStorageAreas(), new MemoryKeyStore());
+    expect(await fresh.isInitialized()).toBe(false);
+    await fresh.ensure();
+    await fresh.ensure();
+    expect(await fresh.isInitialized()).toBe(true);
+    expect(await fresh.protection()).toBe('device');
+  });
+
+  it('generates a key that can never be exported', async () => {
+    const key = await generateDeviceKey();
+    expect(key.extractable).toBe(false);
+    await expect(crypto.subtle.exportKey('raw', key)).rejects.toThrow();
+  });
+
+  it('never writes key material to storage', async () => {
+    await vault.addPassword({
+      origin: 'https://example.com',
+      username: 'ada',
+      password: 'super-secret-value',
+    });
+
+    const local = JSON.stringify((areas.local as MemoryArea).snapshot());
+    expect(local).not.toContain('super-secret-value');
+    expect(local).not.toContain('ada');
+    expect(local).toContain('A256GCM');
+
+    // The key lives in the key store, not in either storage area.
+    expect(JSON.stringify((areas.session as MemoryArea).snapshot())).toBe('{}');
+    expect(local).not.toContain('vaultKey');
+  });
+
+  it('is readable again after a service-worker restart', async () => {
+    await vault.addPassword({ origin: 'https://a.test', username: 'u', password: 'p' });
+
+    // A new VaultStore over the same storage and the same key store is exactly
+    // what a woken service worker sees.
+    const restarted = new VaultStore(areas, keys);
+    expect(await restarted.isUnlocked()).toBe(true);
+    expect(await restarted.listPasswords()).toHaveLength(1);
+  });
+
+  it('is unreadable to a browser profile that does not have the key', async () => {
+    await vault.addPassword({ origin: 'https://a.test', username: 'u', password: 'p' });
+    const stranger = new VaultStore(areas, new MemoryKeyStore());
+    await expect(stranger.listPasswords()).rejects.toThrow();
+  });
+
+  it('does not pretend to lock', async () => {
+    await vault.lock();
+    expect(await vault.isUnlocked()).toBe(true);
+    await expect(vault.listPasswords()).resolves.toEqual([]);
+  });
+
+  it('upgrades to a passphrase and back without losing anything', async () => {
+    await vault.addPassword({ origin: 'https://a.test', username: 'ada', password: 'p' });
+    await vault.writeTokens({
+      uid: 'uid',
+      email: 'ada@example.org',
+      refreshToken: 'refresh-token-value',
+      kSync: 'a2V5',
+      kid: '1-abc',
+      connectedAt: 1,
+    });
+
+    await vault.setProtection({ passphrase: 'a chosen passphrase', iterations: FAST_KDF });
+    expect(await vault.protection()).toBe('passphrase');
+    expect(await vault.listPasswords()).toHaveLength(1);
+
+    // Now it really does lock.
+    await vault.lock();
+    expect(await vault.isUnlocked()).toBe(false);
+    await expect(vault.listPasswords()).rejects.toThrow(VaultLockedError);
+
+    await vault.unlock('a chosen passphrase');
+    expect((await vault.readTokens())?.refreshToken).toBe('refresh-token-value');
+
+    await vault.setProtection({ passphrase: null }, 'a chosen passphrase');
+    expect(await vault.protection()).toBe('device');
+    expect(await vault.isUnlocked()).toBe(true);
+    expect(await vault.listPasswords()).toHaveLength(1);
+  });
+
+  it('requires the current passphrase to leave passphrase mode', async () => {
+    await vault.setProtection({ passphrase: 'a chosen passphrase', iterations: FAST_KDF });
+    await expect(vault.setProtection({ passphrase: null })).rejects.toThrow(/current passphrase/);
+  });
+
+  it('reset discards the device key too', async () => {
+    await vault.addPassword({ origin: 'https://a.test', username: 'u', password: 'p' });
+    await vault.reset();
+
+    expect(await vault.isInitialized()).toBe(false);
+    expect((areas.local as MemoryArea).snapshot()).toEqual({});
+    // A new vault gets a new key, so the old ciphertext stays unreadable.
+    await vault.create();
+    expect(await vault.listPasswords()).toEqual([]);
   });
 });

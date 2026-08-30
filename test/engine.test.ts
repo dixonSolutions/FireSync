@@ -9,6 +9,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { memoryStorageAreas } from '../src/common/storage.ts';
+import { MemoryKeyStore } from '../src/vault/device-key.ts';
 import { FxAClient } from '../src/fxa/client.ts';
 import { SyncEngine } from '../src/sync15/engine.ts';
 import type { PasswordRecord } from '../src/sync15/engines/passwords.ts';
@@ -21,8 +22,6 @@ import {
   TOKEN_SERVER,
 } from './helpers/fake-sync-server.ts';
 
-const PASSPHRASE = 'a passphrase for the tests';
-const FAST_KDF = 120_000;
 
 function firefoxLogin(overrides: Partial<PasswordRecord> = {}): PasswordRecord {
   return {
@@ -46,9 +45,9 @@ async function harness() {
   const syncKeyBundle = randomKeyBundle();
   const server = new FakeSyncServer({ syncKeyBundle });
   const areas = memoryStorageAreas();
-  const vault = new VaultStore(areas);
+  const vault = new VaultStore(areas, new MemoryKeyStore());
 
-  await vault.create(PASSPHRASE, FAST_KDF);
+  await vault.create();
   await vault.writeTokens({
     uid: 'uid-42',
     email: 'ada@example.org',

@@ -44,10 +44,13 @@ async function vaultStatus(): Promise<VaultStatus> {
   const initialized = await vault.isInitialized();
   const unlocked = initialized && (await vault.isUnlocked());
 
+  const protection = await vault.protection();
+
   if (!unlocked) {
     return {
       initialized,
       unlocked,
+      protection,
       connected: false,
       email: null,
       counts: null,
@@ -64,6 +67,7 @@ async function vaultStatus(): Promise<VaultStatus> {
   return {
     initialized,
     unlocked,
+    protection,
     connected: tokens !== null,
     email: tokens?.email ?? null,
     counts,
@@ -89,11 +93,6 @@ async function handle(message: Message, sender: chrome.runtime.MessageSender): P
     case 'vault/status':
       return vaultStatus();
 
-    case 'vault/create':
-      await vault.create(message.passphrase);
-      await broadcast({ type: 'state/unlocked' });
-      return vaultStatus();
-
     case 'vault/unlock':
       await vault.unlock(message.passphrase);
       await scheduleAutoLock();
@@ -105,8 +104,10 @@ async function handle(message: Message, sender: chrome.runtime.MessageSender): P
       await broadcast({ type: 'state/locked' });
       return vaultStatus();
 
-    case 'vault/changePassphrase':
-      await vault.changePassphrase(message.current, message.next);
+    case 'vault/setPassphrase':
+      await vault.setProtection({ passphrase: message.passphrase }, message.current);
+      await scheduleAutoLock();
+      await broadcast({ type: 'state/unlocked' });
       return vaultStatus();
 
     case 'vault/reset':
@@ -119,6 +120,7 @@ async function handle(message: Message, sender: chrome.runtime.MessageSender): P
       return signInHosted(message.email);
 
     case 'account/connect': {
+      await vault.ensure();
       connectSession = new ConnectSession({
         client: getFxaClient(),
         deviceName: `FireSync on ${navigatorLabel()}`,
@@ -319,6 +321,7 @@ async function signInHosted(email?: string): Promise<{ step: string; email?: str
   const flow = new HostedSignIn({
     client: new FxAClient({ oauthClientId: DEFAULT_HOSTED_CLIENT_ID, userAgent: USER_AGENT }),
   });
+  await getVault().ensure();
   const pending = await flow.start(email ? { email } : {});
   const tab = await chrome.tabs.create({ url: pending.authorizationUrl, active: true });
   const tabId = tab.id;
@@ -555,8 +558,13 @@ export async function scheduleUpdateCheck(): Promise<void> {
 }
 
 export async function scheduleAutoLock(): Promise<void> {
-  const { lockTimeoutMinutes } = await getPrefs().global();
   await chrome.alarms.clear(ALARM.autoLock);
+
+  // Without a passphrase there is nothing to lock: the key comes from IndexedDB
+  // and any click would reopen it. Scheduling a lock would be theatre.
+  if ((await getVault().protection()) !== 'passphrase') return;
+
+  const { lockTimeoutMinutes } = await getPrefs().global();
   if (lockTimeoutMinutes > 0) {
     await chrome.alarms.create(ALARM.autoLock, { delayInMinutes: lockTimeoutMinutes });
   }

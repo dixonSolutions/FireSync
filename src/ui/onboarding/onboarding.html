@@ -35,32 +35,12 @@
       </div>
       <h1>Bring your Firefox logins into this browser</h1>
       <p class="lede">
-        Two steps: pick a passphrase that protects the vault on this device, then
-        connect the Mozilla account you sync Firefox with.
+        One step. Sign in with the Mozilla account you already sync Firefox with — on
+        Mozilla's own page, so FireSync never sees your password.
       </p>
 
-      <section class="card" id="step-vault">
-        <div class="step"><span class="num">1</span><h2>Protect this device</h2></div>
-        <p class="muted" style="font-size:12px;margin-top:0">
-          This passphrase encrypts everything FireSync stores on disk. It is not your
-          Mozilla password, and it never leaves this machine — there is no recovery.
-        </p>
-        <form id="vault-form">
-          <div class="field">
-            <label for="pass1">FireSync passphrase</label>
-            <input type="password" id="pass1" autocomplete="new-password" />
-          </div>
-          <div class="field">
-            <label for="pass2">Confirm passphrase</label>
-            <input type="password" id="pass2" autocomplete="new-password" />
-          </div>
-          <button class="primary" type="submit">Create vault</button>
-          <div class="error" id="vault-error"></div>
-        </form>
-      </section>
-
-      <section class="card" id="step-account" hidden>
-        <div class="step"><span class="num">2</span><h2>Connect your Mozilla account</h2></div>
+      <section class="card" id="step-account">
+        <div class="step"><span class="num">1</span><h2>Sign in to your Mozilla account</h2></div>
 
         <p class="muted" style="font-size:13px;margin-top:0">
           You sign in on Mozilla's own page. FireSync never sees your password.
@@ -114,7 +94,7 @@
       </section>
 
       <section class="card" id="step-done" hidden>
-        <div class="step"><span class="num">✓</span><h2>You're connected</h2></div>
+        <div class="step"><span class="num">2</span><h2>You're connected</h2></div>
         <p class="muted" style="font-size:13px">
           FireSync is syncing now. Two things worth doing next:
         </p>

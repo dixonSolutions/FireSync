@@ -16,6 +16,7 @@
  */
 
 import { fromB64, toB64 } from '../common/bytes.ts';
+import { importAesGcmKey } from '../common/crypto.ts';
 import type { KeyValueArea, StorageAreas } from '../common/storage.ts';
 import type { LocalRecord } from '../sync15/reconcile.ts';
 import type { PasswordRecord } from '../sync15/engines/passwords.ts';
@@ -28,9 +29,12 @@ import {
 import type { NewPasswordInput } from '../sync15/engines/passwords.ts';
 import { matchScore, originMatches } from '../match/uri.ts';
 import type { MatchContext } from '../match/uri.ts';
+import { clearDeviceKey, deviceKeyStore, getOrCreateDeviceKey } from './device-key.ts';
+import type { DeviceKeyStore } from './device-key.ts';
 import {
   checkVerifier,
   deriveVaultKey,
+  deriveVaultKeyBytes,
   makeVerifier,
   newKdfParams,
   seal,
@@ -62,9 +66,17 @@ export const STORAGE_KEY = {
   unlocked: 'firesync.unlocked',
 } as const;
 
+export type VaultProtection =
+  /** Non-extractable key in IndexedDB. No prompt, no lock screen. Default. */
+  | 'device'
+  /** Key stretched from a passphrase. Stronger at rest; opt-in in Settings. */
+  | 'passphrase';
+
 export interface VaultMeta {
   version: number;
-  kdf: KdfParams;
+  protection: VaultProtection;
+  /** Present only in passphrase mode. */
+  kdf?: KdfParams;
   createdAt: number;
 }
 
@@ -76,12 +88,14 @@ export interface PasswordMatch {
 export class VaultStore {
   private readonly local: KeyValueArea;
   private readonly session: KeyValueArea;
-  /** In-process cache so a single message handler does not re-derive/decrypt. */
+  private readonly keyStore: DeviceKeyStore;
+  /** In-process cache so one message handler does not decrypt twice. */
   private cachedContents: VaultContents | null = null;
 
-  constructor(areas: StorageAreas) {
+  constructor(areas: StorageAreas, keyStore: DeviceKeyStore = deviceKeyStore) {
     this.local = areas.local;
     this.session = areas.session;
+    this.keyStore = keyStore;
   }
 
   // ---------------------------------------------------------------- lifecycle
@@ -90,14 +104,33 @@ export class VaultStore {
     return (await this.local.get<VaultMeta>(STORAGE_KEY.meta)) !== undefined;
   }
 
-  /** Create a brand new empty vault protected by `passphrase`. */
-  async create(passphrase: string, iterations?: number): Promise<void> {
+  async protection(): Promise<VaultProtection> {
+    return (await this.local.get<VaultMeta>(STORAGE_KEY.meta))?.protection ?? 'device';
+  }
+
+  /**
+   * Create the vault.
+   *
+   * With no passphrase this is silent and needs no user input at all — which is
+   * the point. `ensure()` calls it lazily, so nothing in the UI has to.
+   */
+  async create(options: { passphrase?: string; iterations?: number } = {}): Promise<void> {
     if (await this.isInitialized()) {
       throw new Error('vault already exists; call reset() first');
     }
-    const kdf = newKdfParams(iterations);
-    const key = await deriveVaultKey(passphrase, kdf);
-    const meta: VaultMeta = { version: VAULT_CONTENTS_VERSION, kdf, createdAt: Date.now() };
+
+    let meta: VaultMeta;
+    let key: CryptoKey;
+
+    if (options.passphrase) {
+      const kdf = newKdfParams(options.iterations);
+      key = await deriveVaultKey(options.passphrase, kdf);
+      meta = { version: VAULT_CONTENTS_VERSION, protection: 'passphrase', kdf, createdAt: Date.now() };
+      await this.rememberSessionKey(await deriveVaultKeyBytes(options.passphrase, kdf));
+    } else {
+      key = await getOrCreateDeviceKey(this.keyStore);
+      meta = { version: VAULT_CONTENTS_VERSION, protection: 'device', createdAt: Date.now() };
+    }
 
     await this.local.setMany({
       [STORAGE_KEY.meta]: meta,
@@ -105,77 +138,128 @@ export class VaultStore {
       [STORAGE_KEY.vault]: await seal(key, emptyVaultContents(), SLOT.vault),
       [STORAGE_KEY.sync]: await seal(key, emptySyncState(), SLOT.vault),
     });
-    await this.setSessionKey(key);
     this.cachedContents = emptyVaultContents();
   }
 
-  /** Verify the passphrase and hold the derived key in session storage. */
+  /** Create the vault if it does not exist yet. Safe to call on every path. */
+  async ensure(): Promise<void> {
+    if (!(await this.isInitialized())) await this.create();
+  }
+
+  /** Verify a passphrase and hold the key for the session. Passphrase mode only. */
   async unlock(passphrase: string): Promise<void> {
-    const meta = await this.local.get<VaultMeta>(STORAGE_KEY.meta);
-    if (!meta) throw new Error('no vault to unlock');
+    const meta = await this.requireMeta();
+    if (meta.protection !== 'passphrase' || !meta.kdf) {
+      throw new Error('this vault is not protected by a passphrase');
+    }
     const verifier = await this.local.get<SealedBlob>(STORAGE_KEY.verifier);
     if (!verifier) throw new Error('vault verifier is missing; the vault must be reset');
 
     const key = await deriveVaultKey(passphrase, meta.kdf);
     if (!(await checkVerifier(key, verifier))) throw new WrongPassphraseError();
-    await this.setSessionKey(key);
+
+    await this.rememberSessionKey(await deriveVaultKeyBytes(passphrase, meta.kdf));
     this.cachedContents = null;
   }
 
-  /** Drop the key from memory and session storage. */
+  /**
+   * Lock the vault. A no-op in device mode: without a passphrase there is
+   * nothing to withhold, and a lock screen that any click reopens would be
+   * theatre rather than security.
+   */
   async lock(): Promise<void> {
     this.cachedContents = null;
     await this.session.remove(STORAGE_KEY.unlocked);
   }
 
   async isUnlocked(): Promise<boolean> {
+    if (!(await this.isInitialized())) return false;
+    if ((await this.protection()) === 'device') return true;
     return (await this.session.get<UnlockedState>(STORAGE_KEY.unlocked)) !== undefined;
   }
 
-  /** Change the passphrase, re-sealing every blob under the new key. */
-  async changePassphrase(current: string, next: string): Promise<void> {
-    await this.unlock(current);
+  /**
+   * Switch protection mode, or change the passphrase.
+   *
+   * Passing null moves back to the device key. Every blob is re-sealed under
+   * the new key in one write, so an interrupted change cannot leave half the
+   * vault unreadable.
+   */
+  async setProtection(
+    next: { passphrase: string | null; iterations?: number },
+    currentPassphrase?: string,
+  ): Promise<void> {
+    const meta = await this.requireMeta();
+    if (meta.protection === 'passphrase') {
+      if (!currentPassphrase) throw new Error('the current passphrase is required');
+      await this.unlock(currentPassphrase);
+    }
+
     const [contents, tokens, syncState] = await Promise.all([
       this.readContents(),
       this.readTokens(),
       this.readSyncState(),
     ]);
 
-    const kdf = newKdfParams();
-    const key = await deriveVaultKey(next, kdf);
-    const meta: VaultMeta = { version: VAULT_CONTENTS_VERSION, kdf, createdAt: Date.now() };
+    let key: CryptoKey;
+    let nextMeta: VaultMeta;
+
+    if (next.passphrase) {
+      const kdf = newKdfParams(next.iterations);
+      key = await deriveVaultKey(next.passphrase, kdf);
+      nextMeta = { version: VAULT_CONTENTS_VERSION, protection: 'passphrase', kdf, createdAt: Date.now() };
+      await this.rememberSessionKey(await deriveVaultKeyBytes(next.passphrase, kdf));
+    } else {
+      key = await getOrCreateDeviceKey(this.keyStore);
+      nextMeta = { version: VAULT_CONTENTS_VERSION, protection: 'device', createdAt: Date.now() };
+      await this.session.remove(STORAGE_KEY.unlocked);
+    }
 
     const values: Record<string, unknown> = {
-      [STORAGE_KEY.meta]: meta,
+      [STORAGE_KEY.meta]: nextMeta,
       [STORAGE_KEY.verifier]: await makeVerifier(key),
       [STORAGE_KEY.vault]: await seal(key, contents, SLOT.vault),
       [STORAGE_KEY.sync]: await seal(key, syncState, SLOT.vault),
     };
     if (tokens) values[STORAGE_KEY.tokens] = await seal(key, tokens, SLOT.tokens);
+    else await this.local.remove(STORAGE_KEY.tokens);
 
     await this.local.setMany(values);
-    await this.setSessionKey(key);
+    this.cachedContents = contents;
   }
 
-  /** Delete everything. Used by "Disconnect account" and by tests. */
+  /** Delete everything, including the device key. */
   async reset(): Promise<void> {
     this.cachedContents = null;
     await this.local.remove(Object.values(STORAGE_KEY));
     await this.session.remove(STORAGE_KEY.unlocked);
+    await clearDeviceKey(this.keyStore);
   }
 
   // ------------------------------------------------------------- key handling
 
-  private async setSessionKey(key: Uint8Array): Promise<void> {
-    const state: UnlockedState = { vaultKey: toB64(key), unlockedAt: Date.now() };
+  private async requireMeta(): Promise<VaultMeta> {
+    const meta = await this.local.get<VaultMeta>(STORAGE_KEY.meta);
+    if (!meta) throw new Error('no vault exists yet');
+    return meta;
+  }
+
+  private async rememberSessionKey(raw: Uint8Array): Promise<void> {
+    const state: UnlockedState = { vaultKey: toB64(raw), unlockedAt: Date.now() };
     await this.session.set(STORAGE_KEY.unlocked, state);
   }
 
-  /** The unlocked key, or throw. Every read/write funnels through here. */
-  private async requireKey(): Promise<Uint8Array> {
+  /**
+   * The key to seal and unseal with. In device mode this always succeeds; in
+   * passphrase mode it throws until the user has unlocked.
+   */
+  private async requireKey(): Promise<CryptoKey> {
+    const meta = await this.requireMeta();
+    if (meta.protection === 'device') return getOrCreateDeviceKey(this.keyStore);
+
     const state = await this.session.get<UnlockedState>(STORAGE_KEY.unlocked);
     if (!state) throw new VaultLockedError();
-    return fromB64(state.vaultKey);
+    return importAesGcmKey(fromB64(state.vaultKey), false);
   }
 
   // ----------------------------------------------------------------- contents

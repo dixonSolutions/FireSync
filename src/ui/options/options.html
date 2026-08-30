@@ -76,7 +76,8 @@
         <div class="setting">
           <div class="grow">
             <div>Lock after inactivity</div>
-            <div>Minutes. 0 disables auto-locking, which is not recommended.</div>
+            <div>Minutes. Only applies when a passphrase is set — without one there is
+                 nothing to withhold.</div>
           </div>
           <input type="number" id="lockTimeoutMinutes" min="0" max="480" />
         </div>
@@ -89,10 +90,10 @@
         </div>
         <div class="setting">
           <div class="grow">
-            <div>Change passphrase</div>
-            <div>Re-encrypts the vault, tokens and sync state under a new key.</div>
+            <div id="protection-state">Device key (no passphrase)</div>
+            <div id="protection-detail"></div>
           </div>
-          <button id="changePassphrase">Change…</button>
+          <button id="protection">Add a passphrase…</button>
         </div>
       </section>
 

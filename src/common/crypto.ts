@@ -135,6 +135,41 @@ export async function aesGcmDecrypt(
   return new Uint8Array(await subtle().decrypt(params, k, ciphertext as BufferSource));
 }
 
+/** Import raw bytes as an AES-GCM key. Extractable only if asked for. */
+export async function importAesGcmKey(
+  raw: Uint8Array,
+  extractable = false,
+): Promise<CryptoKey> {
+  return subtle().importKey('raw', raw as BufferSource, 'AES-GCM', extractable, [
+    'encrypt',
+    'decrypt',
+  ]);
+}
+
+/** AES-256-GCM encrypt with an existing `CryptoKey`. */
+export async function aesGcmEncryptWithKey(
+  key: CryptoKey,
+  iv: Uint8Array,
+  plaintext: Uint8Array,
+  aad?: Uint8Array,
+): Promise<Uint8Array> {
+  const params: AesGcmParams = { name: 'AES-GCM', iv: iv as BufferSource, tagLength: 128 };
+  if (aad) params.additionalData = aad as BufferSource;
+  return new Uint8Array(await subtle().encrypt(params, key, plaintext as BufferSource));
+}
+
+/** AES-256-GCM decrypt with an existing `CryptoKey`. Throws if the tag fails. */
+export async function aesGcmDecryptWithKey(
+  key: CryptoKey,
+  iv: Uint8Array,
+  ciphertext: Uint8Array,
+  aad?: Uint8Array,
+): Promise<Uint8Array> {
+  const params: AesGcmParams = { name: 'AES-GCM', iv: iv as BufferSource, tagLength: 128 };
+  if (aad) params.additionalData = aad as BufferSource;
+  return new Uint8Array(await subtle().decrypt(params, key, ciphertext as BufferSource));
+}
+
 /** Generate an ephemeral P-256 ECDH key pair for the FxA scoped-key flow. */
 export async function generateEcdhKeyPair(): Promise<CryptoKeyPair> {
   return subtle().generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, [

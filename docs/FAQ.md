@@ -24,18 +24,22 @@ There is a password fallback behind a disclosure in setup, for when that flow is
 unavailable. It derives an authentication value locally and discards the password
 immediately, but FireSync does briefly handle it — which is exactly what the default avoids.
 
-**Why does it ask for a passphrase, then?**
-That is a *FireSync* passphrase, not your Mozilla one, and it is a different job: it
-encrypts the vault on this device so the file on disk is useless to anyone who copies it.
-There is no recovery, by design.
+**Does it ask for anything else?**
+No. Setup is one button. The vault on disk is encrypted with a non-extractable key the
+browser holds for this extension — nothing to invent, nothing to retype, nothing to lose.
+
+If you want the stronger property that a stolen profile directory is completely inert, turn
+on a passphrase in Settings → Security. That is opt-in because it is unrecoverable, and
+because requiring one by default would mean asking you to memorise a password in order to use
+the thing that exists so you do not have to.
 
 **Why a separate FireSync passphrase?**
 Because the alternative is worse. If the vault key came from your Mozilla password, changing
 that password would orphan the local vault, and one compromise would become two.
 
 **I forgot the FireSync passphrase.**
-There is no recovery — that is what "encrypted at rest" means. Reset the vault and reconnect
-your account; your logins are on Mozilla's servers, not only on this machine.
+If you opted into one, there is no recovery — that is what it buys. Reset the vault and sign
+in again; your logins are on Mozilla's servers, not only on this machine.
 
 **Why can't I install it on my normal Chrome?**
 Chrome requires a Web Store-issued publisher proof inside every CRX and refuses anything

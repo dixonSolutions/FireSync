@@ -23,26 +23,60 @@ function relative(timestamp: number | null): string {
   return `synced ${Math.round(seconds / 86400)} d ago`;
 }
 
-function renderStatus(status: VaultStatus): void {
-  if (!status.initialized) {
-    statusEl.textContent = 'Not set up yet';
-    void chrome.tabs.create({ url: chrome.runtime.getURL('onboarding.html') });
-    return;
+function renderStatus(status: VaultStatus): boolean {
+  // Not signed in is the only state that needs setting up, and the only thing
+  // to ask for. There is no passphrase and, by default, nothing to unlock.
+  if (!status.connected) {
+    statusEl.textContent = 'Not signed in';
+    showSignInPrompt();
+    return false;
   }
   if (!status.unlocked) {
     statusEl.textContent = 'Locked';
     location.href = 'unlock.html';
-    return;
-  }
-  if (!status.connected) {
-    statusEl.textContent = 'No Mozilla account connected';
-    return;
+    return false;
   }
   const counts = status.counts;
   statusEl.textContent = `${status.email} · ${counts?.passwords ?? 0} logins · ${relative(
     status.lastSyncAt,
   )}`;
   if (status.lastSyncError) showError(status.lastSyncError);
+  return true;
+}
+
+/** Replace the credential list with a single call to action. */
+function showSignInPrompt(): void {
+  filterEl.hidden = true;
+  listEl.replaceChildren();
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'text-align:center;padding:18px 6px 8px';
+
+  const line = document.createElement('p');
+  line.className = 'status';
+  line.style.margin = '0 0 12px';
+  line.textContent = 'Sign in with the Mozilla account you sync Firefox with.';
+
+  const button = document.createElement('button');
+  button.className = 'primary';
+  button.style.width = '100%';
+  button.textContent = 'Sign in at accounts.firefox.com';
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    button.textContent = 'Waiting for Mozilla sign-in…';
+    try {
+      await sendMessage({ type: 'account/signInHosted' });
+      await load();
+    } catch (error) {
+      showError(error);
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Sign in at accounts.firefox.com';
+    }
+  });
+
+  wrap.append(line, button);
+  listEl.append(wrap);
 }
 
 function renderList(): void {
@@ -130,8 +164,9 @@ async function renderUpdateBanner(): Promise<void> {
 async function load(): Promise<void> {
   try {
     const status = await sendMessage({ type: 'vault/status' });
-    renderStatus(status);
-    if (status.unlocked) {
+    const ready = renderStatus(status);
+    if (ready) {
+      filterEl.hidden = false;
       credentials = await sendMessage({ type: 'passwords/list' });
       credentials.sort((a, b) => a.origin.localeCompare(b.origin));
       renderList();

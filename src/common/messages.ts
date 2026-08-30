@@ -26,6 +26,8 @@ export interface CredentialSummary {
 export interface VaultStatus {
   initialized: boolean;
   unlocked: boolean;
+  /** 'device' needs no passphrase and never locks; 'passphrase' is opt-in. */
+  protection: 'device' | 'passphrase';
   connected: boolean;
   email: string | null;
   counts: { passwords: number; addresses: number; pendingUploads: number } | null;
@@ -47,10 +49,9 @@ export interface CapturedCredential {
 
 export type Message =
   | { type: 'vault/status' }
-  | { type: 'vault/create'; passphrase: string }
   | { type: 'vault/unlock'; passphrase: string }
   | { type: 'vault/lock' }
-  | { type: 'vault/changePassphrase'; current: string; next: string }
+  | { type: 'vault/setPassphrase'; passphrase: string | null; current?: string }
   | { type: 'vault/reset' }
   | { type: 'account/signInHosted'; email?: string }
   | { type: 'account/connect'; email: string; password: string; unblockCode?: string }
@@ -84,10 +85,9 @@ export type Message =
 /** Response payload keyed by message type. */
 export interface ResponseMap {
   'vault/status': VaultStatus;
-  'vault/create': VaultStatus;
   'vault/unlock': VaultStatus;
   'vault/lock': VaultStatus;
-  'vault/changePassphrase': VaultStatus;
+  'vault/setPassphrase': VaultStatus;
   'vault/reset': VaultStatus;
   'account/signInHosted': { step: string; email?: string };
   'account/connect': { step: string; email?: string };

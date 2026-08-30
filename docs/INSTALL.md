@@ -125,16 +125,24 @@ matrix and troubleshooting: [DISTRIBUTION.md](DISTRIBUTION.md).
 
 ## First run
 
-1. **Set a FireSync passphrase.** It encrypts the vault on this device. It is not your
-   Mozilla password, and there is no recovery — if you lose it, reset and reconnect.
-2. **Connect your Mozilla account.** TOTP, emailed confirmation codes and Mozilla's
-   new-device unblock flow are all handled. Your password is used to derive an
-   authentication value locally and is then discarded; the session token is destroyed as
-   soon as OAuth tokens exist.
-3. **Turn off Chrome's own password manager** at `chrome://settings/autofill`. If you
-   installed by policy this was done for you. Skip it and every login form gives you two
-   save prompts and two dropdowns — the single most common "FireSync is broken" report.
-4. **Pin FireSync to the toolbar**, so unlocking is one click.
+1. **Sign in to your Mozilla account.** One button. You authenticate on Mozilla's own page:
+   FireSync never sees your password, never holds a session token, and never derives your
+   master key. Two-factor codes, confirmation emails and new-device unblock codes are all
+   handled there.
+2. **Turn off the browser's own password manager** at `chrome://settings/autofill`. The
+   one-command install did this for you. Skip it and every login form gives you two save
+   prompts and two dropdowns — the most common "FireSync is broken" report.
+3. **Pin FireSync to the toolbar**, so it is one click away.
+
+That is the whole setup. There is no passphrase to choose: the vault on disk is encrypted
+with a non-extractable key the browser holds for this extension, so there is nothing to
+invent, retype or lose.
+
+If you want the stronger property that a *copied profile directory* is completely inert, turn
+on a passphrase at **Settings → Security → Add a passphrase**. That is opt-in rather than the
+default because it is unrecoverable, and because requiring one would mean asking you to
+memorise a password in order to use the thing that exists so you do not have to. The trade is
+spelled out in [SECURITY.md](SECURITY.md#key-hierarchy).
 
 ## Optional: the local bridge
 

@@ -152,7 +152,6 @@ sudo bash install.sh</code></pre>
 
     <h3>Then, once</h3>
     <ol>
-      <li><strong>Choose a FireSync passphrase.</strong> It encrypts the vault on this device. It is not your Mozilla password, and there is no recovery.</li>
       <li><strong>Sign in to your Mozilla account.</strong> Two-factor codes and confirmation emails are handled.</li>
       <li><strong>Turn off the browser&rsquo;s own password manager</strong> at <code>chrome://settings/autofill</code> &mdash; otherwise every login form gives you two save prompts. The one-command install already did this.</li>
     </ol>
@@ -170,10 +169,11 @@ sudo bash install.sh</code></pre>
       third party holding your vault.
     </p>
     <div class="grid">
+      <div class="card"><h4>Nothing to invent</h4><p>Setup is one button. No passphrase, no second account. A passphrase is available in Settings if you want one.</p></div>
       <div class="card"><h4>Two-way sync</h4><p>Passwords and addresses over Sync 1.5, with last-writer-wins conflict resolution — the same rule Firefox uses.</p></div>
       <div class="card"><h4>Autofill &amp; save prompts</h4><p>FireSync draws its own, because Chrome does not let extensions into the native ones.</p></div>
       <div class="card"><h4>Per-site preferences</h4><p>Never-save, match strategy, menu behaviour — kept in a private synced collection.</p></div>
-      <div class="card"><h4>Encrypted at rest</h4><p>AES-256-GCM under a passphrase that never leaves the device. Auto-locks when idle.</p></div>
+      <div class="card"><h4>Encrypted at rest</h4><p>AES-256-GCM under a non-extractable key the browser holds for this extension. Nothing to remember.</p></div>
       <div class="card"><h4>Local Firefox import</h4><p>An optional bridge reads your profile off disk. No account, no network.</p></div>
       <div class="card"><h4>No server</h4><p>Nothing to breach, nothing to trust. The extension talks to Mozilla and nobody else.</p></div>
     </div>

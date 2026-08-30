@@ -20,33 +20,6 @@ const text = (id: string, value: string): void => {
   if (element) element.textContent = value;
 };
 
-// ------------------------------------------------------------------ step 1
-(document.getElementById('vault-form') as HTMLFormElement).addEventListener(
-  'submit',
-  async (event) => {
-    event.preventDefault();
-    const first = (document.getElementById('pass1') as HTMLInputElement).value;
-    const second = (document.getElementById('pass2') as HTMLInputElement).value;
-
-    if (first.length < 10) {
-      text('vault-error', 'Use at least 10 characters. This is the only thing protecting the vault on disk.');
-      return;
-    }
-    if (first !== second) {
-      text('vault-error', 'Those passphrases do not match.');
-      return;
-    }
-    try {
-      await sendMessage({ type: 'vault/create', passphrase: first });
-      show('step-vault', false);
-      show('step-account', true);
-      (document.getElementById('email') as HTMLInputElement).focus();
-    } catch (error) {
-      text('vault-error', error instanceof Error ? error.message : String(error));
-    }
-  },
-);
-
 // ------------------------------------------------------------------ step 2
 
 /**
@@ -150,16 +123,11 @@ document.getElementById('finish')?.addEventListener('click', () => {
   window.close();
 });
 
-// Skip step 1 if a vault already exists.
+// If an account is already connected there is nothing to set up.
 void (async () => {
   const status = await sendMessage({ type: 'vault/status' }).catch(() => null);
-  if (!status) return;
-  if (status.initialized && status.unlocked && !status.connected) {
-    show('step-vault', false);
-    show('step-account', true);
-  }
-  if (status.connected) {
-    show('step-vault', false);
+  if (status?.connected) {
+    show('step-account', false);
     show('step-done', true);
   }
 })();

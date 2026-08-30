@@ -13,7 +13,12 @@
  */
 
 import { fromB64, randomBytes, toB64, utf8 } from '../common/bytes.ts';
-import { aesGcmDecrypt, aesGcmEncrypt, pbkdf2 } from '../common/crypto.ts';
+import {
+  aesGcmDecryptWithKey,
+  aesGcmEncryptWithKey,
+  importAesGcmKey,
+  pbkdf2,
+} from '../common/crypto.ts';
 
 /** OWASP's 2023 floor for PBKDF2-HMAC-SHA256. Raised, never lowered. */
 export const DEFAULT_KDF_ITERATIONS = 600_000;
@@ -54,8 +59,20 @@ export function newKdfParams(iterations = DEFAULT_KDF_ITERATIONS): KdfParams {
   return { algorithm: 'PBKDF2-SHA256', iterations, salt: toB64(randomBytes(16)) };
 }
 
-/** Stretch a passphrase into the 256-bit vault key. */
-export async function deriveVaultKey(
+/**
+ * Stretch a passphrase into a vault key.
+ *
+ * Only used when the user has opted into passphrase protection; the default is
+ * a non-extractable device key (see device-key.ts). The result is imported as a
+ * non-extractable `CryptoKey` so that from here on both modes are identical to
+ * every caller.
+ */
+export async function deriveVaultKey(passphrase: string, params: KdfParams): Promise<CryptoKey> {
+  return importAesGcmKey(await deriveVaultKeyBytes(passphrase, params), false);
+}
+
+/** The raw derived bytes. Needed only to hand a key to session storage. */
+export async function deriveVaultKeyBytes(
   passphrase: string,
   params: KdfParams,
 ): Promise<Uint8Array> {
@@ -69,21 +86,21 @@ export async function deriveVaultKey(
 }
 
 /** Encrypt a JSON-serialisable value into a sealed blob bound to `slot`. */
-export async function seal(key: Uint8Array, value: unknown, slot: string): Promise<SealedBlob> {
+export async function seal(key: CryptoKey, value: unknown, slot: string): Promise<SealedBlob> {
   const iv = randomBytes(12);
-  const ciphertext = await aesGcmEncrypt(key, iv, utf8(JSON.stringify(value)), utf8(slot));
+  const ciphertext = await aesGcmEncryptWithKey(key, iv, utf8(JSON.stringify(value)), utf8(slot));
   return { v: VAULT_FORMAT_VERSION, alg: 'A256GCM', iv: toB64(iv), ct: toB64(ciphertext) };
 }
 
 /** Decrypt a sealed blob. Throws `WrongPassphraseError` on tag failure. */
-export async function unseal<T>(key: Uint8Array, blob: SealedBlob, slot: string): Promise<T> {
+export async function unseal<T>(key: CryptoKey, blob: SealedBlob, slot: string): Promise<T> {
   if (blob?.alg !== 'A256GCM') throw new Error(`unsupported vault blob algorithm: ${blob?.alg}`);
   if (blob.v > VAULT_FORMAT_VERSION) {
     throw new Error(`vault blob version ${blob.v} is newer than this build understands`);
   }
   let plaintext: Uint8Array;
   try {
-    plaintext = await aesGcmDecrypt(key, fromB64(blob.iv), fromB64(blob.ct), utf8(slot));
+    plaintext = await aesGcmDecryptWithKey(key, fromB64(blob.iv), fromB64(blob.ct), utf8(slot));
   } catch {
     throw new WrongPassphraseError();
   }
@@ -98,12 +115,12 @@ export const SLOT = {
 } as const;
 
 /** A short blob whose only job is to confirm a passphrase quickly. */
-export async function makeVerifier(key: Uint8Array): Promise<SealedBlob> {
+export async function makeVerifier(key: CryptoKey): Promise<SealedBlob> {
   return seal(key, { ok: true, at: 0 }, SLOT.verifier);
 }
 
 /** Check a candidate key against the stored verifier. */
-export async function checkVerifier(key: Uint8Array, verifier: SealedBlob): Promise<boolean> {
+export async function checkVerifier(key: CryptoKey, verifier: SealedBlob): Promise<boolean> {
   try {
     const value = await unseal<{ ok: boolean }>(key, verifier, SLOT.verifier);
     return value.ok === true;
