@@ -34,6 +34,7 @@ const MODULE_ENTRIES = {
 
 const IIFE_ENTRIES = {
   content: 'src/autofill/content.ts',
+  'signin-relay': 'src/autofill/signin-relay.ts',
 };
 
 const HTML_PAGES = [

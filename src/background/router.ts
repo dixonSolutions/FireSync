@@ -122,6 +122,15 @@ async function handle(message: Message, sender: chrome.runtime.MessageSender): P
     case 'account/signInProgress':
       return getSignIn().progress();
 
+    case 'account/diagnostics':
+      return getSignIn().diagnostics();
+
+    // The relay content script running on the OAuth success page. Its own URL
+    // is authoritative; a page cannot claim to be somewhere it is not.
+    case 'signin/redirect':
+      await getSignIn().onNavigation(sender.tab?.id ?? -1, sender.url ?? message.url);
+      return null;
+
     case 'account/cancelSignIn':
       await getSignIn().cancel();
       return getSignIn().progress();

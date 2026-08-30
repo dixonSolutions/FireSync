@@ -4,6 +4,31 @@ All notable changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] — 2026-08-30
+
+### Fixed
+
+- **Sign-in diagnostics were unreadable, which made a failing sign-in untraceable.** The
+  outcome and page trail were kept in `chrome.storage.session`, which is memory-only — so
+  when a sign-in failed, the evidence had already evaporated. They now go to
+  `chrome.storage.local`, redacted to origin and path, and Settings shows the last attempt
+  with a Copy button.
+- The redirect parser now reads the authorization code from the URL fragment as well as the
+  query, removing a class of silent failure that looks exactly like "nothing happened".
+
+### Added
+
+- **Two more independent ways to notice the redirect**, because relying on one was the
+  mistake. `chrome.tabs.onUpdated` does not always carry a URL and may not wake a dormant
+  worker; so a `webNavigation.onCommitted` listener now watches commits directly, and a
+  narrow content script on `accounts.firefox.com/oauth/success/*` reports from inside the
+  redirect page itself — it cannot miss a navigation that it *is*. Reporting the same
+  redirect three times is harmless; the first one finishes the flow.
+- The redirect is now accepted from any tab when the URL carries the flow's own `state`,
+  rather than only the tab FireSync opened. `parseRedirect` has already required the exact
+  origin, path and 128-bit state, so this is safe, and it fixes the case where the redirect
+  legitimately arrives somewhere else.
+
 ## [0.6.0] — 2026-08-30
 
 ### Fixed

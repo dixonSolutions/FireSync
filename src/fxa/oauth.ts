@@ -107,19 +107,20 @@ export function parseRedirect(
   const target = new URL(expected.redirectUri);
   if (parsed.origin !== target.origin || parsed.pathname !== target.pathname) return null;
 
-  const error = parsed.searchParams.get('error');
+  // Providers may return the parameters in the fragment rather than the query.
+  // Reading both costs nothing and removes a whole class of silent failure.
+  const fragment = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+  const param = (name: string): string | null =>
+    parsed.searchParams.get(name) ?? fragment.get(name);
+
+  const error = param('error');
   if (error) {
-    throw new Error(
-      `authorization failed: ${error}${
-        parsed.searchParams.get('error_description')
-          ? ` (${parsed.searchParams.get('error_description')})`
-          : ''
-      }`,
-    );
+    const description = param('error_description');
+    throw new Error(`authorization failed: ${error}${description ? ` (${description})` : ''}`);
   }
 
-  const code = parsed.searchParams.get('code');
-  const state = parsed.searchParams.get('state');
+  const code = param('code');
+  const state = param('state');
   if (!code || !state) return null;
   if (state !== expected.state) {
     throw new Error('authorization state mismatch — possible CSRF, aborting');

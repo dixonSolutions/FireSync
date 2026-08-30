@@ -66,6 +66,7 @@ export function getUpdateChecker(): UpdateChecker {
 export function getSignIn(): SignInCoordinator {
   return (signIn ??= new SignInCoordinator({
     session: getAreas().session,
+    local: getAreas().local,
     saveAccount: (account) => getVault().writeTokens(account),
     onComplete: () => {
       void broadcast({ type: 'state/signedin' });

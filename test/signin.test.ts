@@ -52,6 +52,7 @@ function fakeFlow(overrides: Partial<Record<'complete', () => Promise<AccountTok
 
 describe('SignInCoordinator', () => {
   let session: MemoryArea;
+  let local: MemoryArea;
   let saved: AccountTokens[];
   let created: string[];
   let removed: number[];
@@ -70,6 +71,7 @@ describe('SignInCoordinator', () => {
   function make(flow = fakeFlow()) {
     return new SignInCoordinator({
       session,
+      local,
       saveAccount: async (a) => {
         saved.push(a);
       },
@@ -81,6 +83,7 @@ describe('SignInCoordinator', () => {
 
   beforeEach(() => {
     session = new MemoryArea();
+    local = new MemoryArea();
     saved = [];
     created = [];
     removed = [];
@@ -126,12 +129,32 @@ describe('SignInCoordinator', () => {
     expect(saved).toEqual([ACCOUNT]);
   });
 
-  it('ignores navigations in other tabs', async () => {
+  it('ignores unrelated navigations in other tabs', async () => {
+    const coordinator = make();
+    await coordinator.begin();
+    await coordinator.onNavigation(99, 'https://example.com/somewhere');
+    await coordinator.onNavigation(99, 'https://accounts.firefox.com/settings');
+    expect(saved).toEqual([]);
+    expect((await coordinator.progress()).active).toBe(true);
+  });
+
+  it('accepts the redirect from another tab, because the state proves it is ours', async () => {
+    // The relay content script reports from whatever tab it runs in, and a user
+    // may move the sign-in to another window. Binding strictly to the tab id we
+    // opened would drop a legitimate redirect. It stays safe because
+    // `parseRedirect` has already required our exact origin, path and state, and
+    // the state is 128 bits we generated and only told Mozilla.
     const coordinator = make();
     await coordinator.begin();
     await coordinator.onNavigation(99, `${REDIRECT}?code=abc&state=st`);
+    expect(saved).toEqual([ACCOUNT]);
+  });
+
+  it('still refuses a redirect carrying the wrong state, whatever tab it is in', async () => {
+    const coordinator = make();
+    await coordinator.begin();
+    await coordinator.onNavigation(99, `${REDIRECT}?code=abc&state=FORGED`);
     expect(saved).toEqual([]);
-    expect((await coordinator.progress()).active).toBe(true);
   });
 
   it('does nothing at all when no sign-in is pending', async () => {

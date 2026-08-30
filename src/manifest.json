@@ -67,6 +67,16 @@
       "run_at": "document_idle",
       "all_frames": true,
       "match_about_blank": true
+    },
+    {
+      "matches": [
+        "https://accounts.firefox.com/oauth/success/*"
+      ],
+      "js": [
+        "signin-relay.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
     }
   ],
   "web_accessible_resources": [

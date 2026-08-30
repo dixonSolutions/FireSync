@@ -30,6 +30,18 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   void getSignIn().onTabClosed(tabId);
 });
 
+// A third path. `tabs.onUpdated` does not always carry a URL, and a worker that
+// is asleep may be woken by one event and not another; webNavigation reports
+// commits directly and costs nothing when no sign-in is pending.
+chrome.webNavigation?.onCommitted.addListener((details) => {
+  if (details.frameId !== 0) return;
+  void getSignIn().onNavigation(details.tabId, details.url);
+});
+chrome.webNavigation?.onHistoryStateUpdated.addListener((details) => {
+  if (details.frameId !== 0) return;
+  void getSignIn().onNavigation(details.tabId, details.url);
+});
+
 chrome.runtime.onInstalled.addListener((details) => {
   void (async () => {
     await schedulePeriodicSync();

@@ -128,6 +128,37 @@ async function renderProtection(): Promise<void> {
 }
 
 /**
+ * Show what happened during the last sign-in.
+ *
+ * A sign-in that fails silently is the worst possible failure for this feature:
+ * the user has just authenticated successfully at Mozilla and the extension
+ * still says signed out, with nothing to go on. The trail is redacted to origin
+ * and path, so it can be copied into a bug report safely.
+ */
+async function renderDiagnostics(): Promise<void> {
+  const target = el('signin-diagnostics');
+  const result = await sendMessage({ type: 'account/diagnostics' });
+  if (!result) {
+    target.textContent = 'No attempt recorded.';
+    return;
+  }
+  const when = new Date(result.at).toLocaleString();
+  const head =
+    result.status === 'complete'
+      ? `Succeeded ${when}${result.email ? ` as ${result.email}` : ''}`
+      : `${result.status === 'cancelled' ? 'Cancelled' : 'Failed'} ${when}: ${result.error ?? 'no reason given'}`;
+  const trail = result.trail?.length ? `\nPages visited: ${result.trail.join(' -> ')}` : '';
+  target.textContent = head + trail;
+  target.style.whiteSpace = 'pre-wrap';
+}
+
+el('copy-diagnostics').addEventListener('click', async () => {
+  const result = await sendMessage({ type: 'account/diagnostics' });
+  await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+  errorEl.textContent = 'Diagnostics copied to the clipboard.';
+});
+
+/**
  * Account management belongs to Mozilla, not to us.
  *
  * There is no Mozilla-hosted password UI to embed — Lockwise reached end of life
@@ -358,5 +389,6 @@ el('bridge-enable').addEventListener('click', async () => {
 
 void render().catch(showError);
 void renderProtection().catch(showError);
+void renderDiagnostics().catch(showError);
 void renderUpdates().catch(showError);
 void renderBridge().catch(showError);

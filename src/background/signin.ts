@@ -64,7 +64,16 @@ export interface SignInProgress {
 }
 
 export interface SignInDeps {
+  /** Memory-only: holds the PKCE verifier and the single-use private key. */
   session: KeyValueArea;
+  /**
+   * On-disk: holds only the redacted outcome and trail.
+   *
+   * The first version kept these in session storage too, which meant that when
+   * a sign-in failed there was no way to find out where — the evidence died
+   * with the worker. Diagnostics that vanish are not diagnostics.
+   */
+  local: KeyValueArea;
   /** Persist the account once the exchange succeeds. */
   saveAccount: (account: AccountTokens) => Promise<void>;
   onComplete?: (account: AccountTokens) => void;
@@ -97,6 +106,7 @@ export function redact(url: string): string {
 
 export class SignInCoordinator {
   private readonly session: KeyValueArea;
+  private readonly local: KeyValueArea;
   private readonly saveAccount: SignInDeps['saveAccount'];
   private readonly onComplete: SignInDeps['onComplete'];
   private readonly flow: HostedSignIn;
@@ -105,6 +115,7 @@ export class SignInCoordinator {
 
   constructor(deps: SignInDeps) {
     this.session = deps.session;
+    this.local = deps.local;
     this.saveAccount = deps.saveAccount;
     this.onComplete = deps.onComplete;
     this.flow =
@@ -124,7 +135,7 @@ export class SignInCoordinator {
    * from. Callers poll `progress()`.
    */
   async begin(email?: string): Promise<{ step: 'started' }> {
-    await this.session.remove(SIGNIN_KEY.result);
+    await this.local.remove(SIGNIN_KEY.result);
 
     const pending = await this.flow.start(email ? { email } : {});
     const tabId = (await this.tabs.create(pending.authorizationUrl)) ?? null;
@@ -138,7 +149,7 @@ export class SignInCoordinator {
   async progress(): Promise<SignInProgress> {
     const [pending, lastResult] = await Promise.all([
       this.session.get<StoredPending>(SIGNIN_KEY.pending),
-      this.session.get<SignInResult>(SIGNIN_KEY.result),
+      this.local.get<SignInResult>(SIGNIN_KEY.result),
     ]);
     return {
       active: pending !== undefined,
@@ -173,8 +184,12 @@ export class SignInCoordinator {
       return;
     }
 
-    // Only follow the tab we opened, unless it never reported an id.
-    if (pending.tabId !== null && tabId !== pending.tabId) return;
+    // Normally only the tab we opened matters. But the redirect can legitimately
+    // arrive from elsewhere — the relay content script reports from whatever tab
+    // it is running in, and a user may have moved the sign-in to a new window.
+    // A URL that carries our exact `state` is proof enough on its own.
+    const looksLikeOurRedirect = url.includes(encodeURIComponent(pending.state)) || url.includes(pending.state);
+    if (pending.tabId !== null && tabId !== pending.tabId && !looksLikeOurRedirect) return;
 
     const step = redact(url);
     if (pending.trail[pending.trail.length - 1] !== step) {
@@ -231,6 +246,11 @@ export class SignInCoordinator {
 
   private async finish(result: SignInResult): Promise<void> {
     await this.session.remove(SIGNIN_KEY.pending);
-    await this.session.set(SIGNIN_KEY.result, result);
+    await this.local.set(SIGNIN_KEY.result, result);
+  }
+
+  /** Everything known about the last attempt, for the diagnostics panel. */
+  async diagnostics(): Promise<SignInResult | null> {
+    return (await this.local.get<SignInResult>(SIGNIN_KEY.result)) ?? null;
   }
 }

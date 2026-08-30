@@ -13,7 +13,7 @@ import type { SyncResult } from '../sync15/engine.ts';
 import type { GlobalPreferences, SitePreferences } from '../prefs/types.ts';
 import type { BridgeInfo, FirefoxProfile } from '../bridge/protocol.ts';
 import type { UpdateState } from '../update/types.ts';
-import type { SignInProgress } from '../background/signin.ts';
+import type { SignInProgress, SignInResult } from '../background/signin.ts';
 
 /** A credential summary safe to hand to a content script. */
 export interface CredentialSummary {
@@ -56,6 +56,8 @@ export type Message =
   | { type: 'vault/reset' }
   | { type: 'account/signInHosted'; email?: string }
   | { type: 'account/signInProgress' }
+  | { type: 'account/diagnostics' }
+  | { type: 'signin/redirect'; url: string }
   | { type: 'account/cancelSignIn' }
   | { type: 'account/connect'; email: string; password: string; unblockCode?: string }
   | { type: 'account/submitTotp'; code: string }
@@ -94,6 +96,8 @@ export interface ResponseMap {
   'vault/reset': VaultStatus;
   'account/signInHosted': { step: string };
   'account/signInProgress': SignInProgress;
+  'account/diagnostics': SignInResult | null;
+  'signin/redirect': null;
   'account/cancelSignIn': SignInProgress;
   'account/connect': { step: string; email?: string };
   'account/submitTotp': { step: string };
