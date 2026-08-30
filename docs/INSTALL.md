@@ -17,26 +17,62 @@ Step-by-step for each below, then [first run](#first-run).
 
 ---
 
-## Chromium, Brave, Vivaldi, ungoogled-chromium — the easy path
+## Chromium, Brave, Vivaldi, ungoogled-chromium
 
-**Option A — drag the CRX in.**
+### The comfortable way — no Developer mode, auto-updating
+
+```bash
+curl -fsSLO https://dixonsolutions.github.io/FireSync/install.sh
+less install.sh          # it runs as root; read it before you run it
+sudo bash install.sh
+```
+
+It detects the Chromium-family browsers you have installed and drops a managed-policy JSON
+into each one's `/etc/<browser>/policies/managed/`. On restart the browser installs FireSync
+itself, pins it to the toolbar, keeps it updated from this project's update manifest, and
+switches off its own password manager so you do not get two save prompts.
+
+`sudo bash install.sh --uninstall` reverses it.
+
+There is a lighter variant that only installs the extension and changes nothing else:
+
+```bash
+sudo bash install.sh --method drop
+```
+
+That writes an [external-extensions](https://developer.chrome.com/docs/extensions/how-to/distribute/install-extensions)
+JSON into `/usr/share/chromium/extensions/`. On Linux this installs with no prompt and no
+Developer mode. It is Google's own documented mechanism for exactly this.
+
+### The quick way — Developer mode, 30 seconds
 
 1. Download `firesync-<version>.crx`.
 2. Open `chrome://extensions`.
-3. Turn on **Developer mode** (top right).
-4. Drag the `.crx` file onto the page and confirm.
+3. Turn on **Developer mode**.
+4. Drag the file onto the page and confirm.
 
-**Option B — load unpacked.**
+Fine for trying it out. No auto-updates, and the Developer-mode toggle stays on.
 
-1. Download and unzip `firesync-<version>.zip`.
-2. `chrome://extensions` → **Developer mode** → **Load unpacked** → select the unzipped
-   folder.
-
-**Option C — command line.**
+### The power-user way — a launcher flag
 
 ```bash
 chromium --load-extension=/path/to/firesync
 ```
+
+**Verified**: on Chromium 150 with a virgin profile and Developer mode *off*, this loads
+FireSync fully — enabled, no disable reasons, service worker running, all host permissions
+granted. Useful if you already launch the browser from a script or a `.desktop` file.
+
+### What was actually tested
+
+Honesty about provenance, since these claims matter:
+
+| Route | Status |
+|---|---|
+| `--load-extension` with Developer mode off | **Verified** on Chromium 150, virgin profile |
+| `/usr/share/chromium/extensions` drop-in | Directory confirmed compiled into the Chromium binary; behaviour per Google's documentation ("Linux users won't be prompted") — not run here, as it needs root |
+| Managed-policy install | Policy directories confirmed compiled into the binary; behaviour per Chrome Enterprise documentation — not run here, as it needs root |
+| Drag-and-drop CRX | Requires Developer mode to be on |
 
 ## Microsoft Edge
 
@@ -65,8 +101,7 @@ enrolled in Chrome Enterprise Core — which is free and works for a single mach
 
 ```bash
 # Linux
-sudo packaging/linux/install-policy.sh <extension-id> \
-  https://dixonsolutions.github.io/FireSync/update.xml
+sudo packaging/linux/install.sh
 ```
 
 ```powershell

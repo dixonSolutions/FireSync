@@ -18,23 +18,34 @@
 
 ## Install
 
-No command line, no build tools. Download one file and drag it in.
-
 ### Chromium · Brave · Vivaldi · ungoogled-chromium
 
-1. Download **`firesync-<version>.crx`** from the [latest release](https://github.com/dixonSolutions/FireSync/releases/latest).
-2. Open `chrome://extensions`.
-3. Turn on **Developer mode** (top right).
-4. Drag the downloaded file onto that page and confirm.
+**One command — no Developer mode, and it auto-updates.** Linux:
+
+```bash
+curl -fsSLO https://dixonsolutions.github.io/FireSync/install.sh
+less install.sh          # it runs as root; read it first
+sudo bash install.sh
+```
+
+Restart the browser and FireSync is there, pinned, updating itself, with the
+browser's own password manager switched off so you don't get two save prompts.
+
+**Or just try it in 30 seconds:** download the `.crx` from the
+[latest release](https://github.com/dixonSolutions/FireSync/releases/latest), open `chrome://extensions`, turn on **Developer mode**, and
+drag the file onto the page. Quickest to try; no auto-updates.
 
 ### Google Chrome · Microsoft Edge · anything else
 
-Stock Chrome refuses off-store `.crx` files, so use the zip — this route works everywhere.
+Stock Chrome refuses off-store `.crx` files, so use the zip — this works everywhere.
 
-1. Download **`firesync-<version>.zip`** from the [latest release](https://github.com/dixonSolutions/FireSync/releases/latest) and unzip it.
+1. Download the **`.zip`** from the [latest release](https://github.com/dixonSolutions/FireSync/releases/latest) and unzip it.
 2. Open `chrome://extensions`.
 3. Turn on **Developer mode** (top right).
 4. Click **Load unpacked** and pick the unzipped folder.
+
+On a *managed* Chrome — AD, Entra ID, MDM, or a free Chrome Enterprise Core enrolment — the
+one-command install above works there too, Developer mode included.
 
 ### Then, once
 
@@ -42,14 +53,11 @@ Stock Chrome refuses off-store `.crx` files, so use the zip — this route works
    Mozilla password, and there is no recovery.
 2. **Sign in to your Mozilla account.** Two-factor codes and confirmation emails are
    handled.
-3. **Turn off Chrome's own password manager** at `chrome://settings/autofill` — otherwise
-   every login form gives you two save prompts.
+3. **Turn off the browser's own password manager** at `chrome://settings/autofill` —
+   otherwise every login form gives you two save prompts. The one-command install already
+   did this for you.
 
-That's it. FireSync starts syncing immediately, and keeps itself up to date by telling you
-when a new version is out.
-
-Longer version, including managed/enterprise installs and how to uninstall:
-**[docs/INSTALL.md](docs/INSTALL.md)**.
+Longer version, other platforms, and how to uninstall: **[docs/INSTALL.md](docs/INSTALL.md)**.
 
 ## Supported browsers
 

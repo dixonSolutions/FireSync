@@ -126,6 +126,8 @@ jobs:
           cp site/index.html _site/index.html
           cp assets/icons/icon-128.png _site/icon.png
           cp assets/banner.png _site/banner.png
+          # Served so the documented one-liner resolves to something readable.
+          cp packaging/linux/install.sh _site/install.sh
 
           cp "build/firesync-$VERSION.zip" _site/download/
           ZIP_URL="${{ env.PAGES_BASE }}/download/firesync-$VERSION.zip"

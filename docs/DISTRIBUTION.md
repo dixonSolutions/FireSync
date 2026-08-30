@@ -115,12 +115,11 @@ behave the same. Policy also works, at `/etc/chromium/policies/managed/`.
 
 ## Linux
 
-`packaging/linux/install-policy.sh` writes the policy for whichever browsers are installed:
+`packaging/linux/install.sh` writes the policy for whichever browsers are installed:
 
 ```bash
-sudo packaging/linux/install-policy.sh \
-  abcdefghijklmnopabcdefghijklmnop \
-  https://dl.example.com/firesync/update.xml
+sudo packaging/linux/install.sh --id abcdefghijklmnopabcdefghijklmnop \
+  --update-url https://dl.example.com/firesync/update.xml
 ```
 
 → `/etc/opt/chrome/policies/managed/firesync.json` and

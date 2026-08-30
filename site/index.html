@@ -117,39 +117,46 @@
 <section>
   <div class="wrap">
     <h2>Install</h2>
-    <p class="note">No command line, no build tools. Download one file and drag it in — about a minute.</p>
+    <p class="note">Two routes. The first needs no Developer mode and keeps itself updated.</p>
 
-    <h3>Chromium · Brave · Vivaldi · ungoogled-chromium</h3>
+    <h3>Chromium · Brave · Vivaldi · ungoogled-chromium — one command</h3>
+    <pre><code>curl -fsSLO https://dixonsolutions.github.io/FireSync/install.sh
+less install.sh          # it runs as root; read it first
+sudo bash install.sh</code></pre>
+    <p class="note">
+      Restart the browser. FireSync installs itself, pins to the toolbar, updates itself from
+      this site, and switches off the browser's own password manager so you do not get two
+      save prompts. No Developer mode involved.
+    </p>
+
+    <h3>Or try it in 30 seconds</h3>
     <ol>
       <li>Download the <strong>CRX</strong> above.</li>
       <li>Open <code>chrome://extensions</code>.</li>
       <li>Turn on <strong>Developer mode</strong>.</li>
       <li>Drag the <code>.crx</code> onto the page and confirm.</li>
     </ol>
+    <p class="note">Quickest way to look at it. No auto-updates on this route.</p>
 
     <h3>Google Chrome · Microsoft Edge · anything else</h3>
-    <p class="note">Stock Chrome refuses off-store <code>.crx</code> files, so use the zip — this route works everywhere.</p>
+    <p class="note">Stock Chrome refuses off-store <code>.crx</code> files, so use the zip — this works everywhere.</p>
     <ol>
       <li>Download the <strong>ZIP</strong> above and unzip it.</li>
-      <li><code>chrome://extensions</code> → <strong>Developer mode</strong> → <strong>Load unpacked</strong>.</li>
+      <li><code>chrome://extensions</code> &rarr; <strong>Developer mode</strong> &rarr; <strong>Load unpacked</strong>.</li>
       <li>Select the unzipped folder.</li>
     </ol>
+    <p class="note">
+      On a <em>managed</em> Chrome — AD, Entra ID, MDM, or a free Chrome Enterprise Core
+      enrolment — the one-command install works there too, Developer mode included.
+    </p>
 
     <h3>Then, once</h3>
     <ol>
       <li><strong>Choose a FireSync passphrase.</strong> It encrypts the vault on this device. It is not your Mozilla password, and there is no recovery.</li>
       <li><strong>Sign in to your Mozilla account.</strong> Two-factor codes and confirmation emails are handled.</li>
-      <li><strong>Turn off Chrome&rsquo;s own password manager</strong> at <code>chrome://settings/autofill</code> &mdash; otherwise every login form gives you two save prompts.</li>
+      <li><strong>Turn off the browser&rsquo;s own password manager</strong> at <code>chrome://settings/autofill</code> &mdash; otherwise every login form gives you two save prompts. The one-command install already did this.</li>
     </ol>
     <p class="note">That is it. FireSync starts syncing immediately.</p>
-
-    <h3>Managed Chrome, with auto-updates</h3>
-    <pre><code>sudo packaging/linux/install-policy.sh &lt;extension-id&gt; \
-  https://dixonsolutions.github.io/FireSync/update.xml</code></pre>
-    <p class="note">
-      Optional, and only for fleets. Requires AD / Entra ID / MDM, or a free Chrome Enterprise
-      Core enrolment. Windows and macOS scripts are in <code>packaging/</code>.
-    </p>
   </div>
 </section>
 
