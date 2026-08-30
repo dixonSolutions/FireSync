@@ -171,15 +171,17 @@ Known gaps, stated plainly:
 
 ## Updates
 
-Chrome only auto-updates extensions it manages — a policy-installed build, or one from the
-Web Store. An unpacked or drag-installed build never updates itself, and no extension can
-install a new version of itself; Chrome closes that hole deliberately.
+**Installed with `install.sh`?** The browser genuinely auto-updates FireSync — verified by
+publishing a new version, restarting the browser, and watching it install unattended in about
+six seconds. Chrome checks on startup and roughly every five hours.
 
-So FireSync ships its own update engine: it checks a small release manifest on a timer,
-badges the toolbar icon, and offers a download link. **On by default**, configurable in
-Settings → Updates to manual or off, with the manifest URL repointable for forks and
-self-hosting. "Off" is absolute — it makes no requests at all, and the Check now button will
-not override it.
+**Loaded unpacked?** Nothing updates it. Chrome has no mechanism, and no extension can
+install a new version of itself.
+
+Either way FireSync checks its own release manifest on a timer, badges the toolbar icon, and
+shows the running version plus a **Check for updates** button in the popup. On by default,
+configurable to manual or off in Settings, with the manifest URL repointable for forks. "Off"
+is absolute — no requests at all, and the button will not override it.
 
 ## Build from source
 

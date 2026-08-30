@@ -160,23 +160,39 @@ permission is requested. Needs Node 22.5+. See [BRIDGE.md](BRIDGE.md).
 
 ## Staying up to date
 
-Chrome only auto-updates extensions it manages — a policy-installed build, or one from the
-Web Store. An unpacked or drag-installed build never updates itself, and no extension can
-install a new version of itself; Chrome closes that hole deliberately.
+**If you installed with `install.sh` (policy), the browser really does update FireSync for
+you.** That is not an assumption — it was tested: a new version was published, the browser
+was restarted, and it fetched and installed the update unattended in about six seconds.
+Chrome checks on startup and roughly every five hours thereafter.
 
-So FireSync checks for its own releases and tells you. **Settings → Updates:**
+**If you loaded it unpacked, nothing updates it.** Chrome has no mechanism for that, and no
+extension can install a new version of itself — that hole is deliberately closed. This is
+the main practical reason to prefer the one-command install.
+
+Either way FireSync also checks for itself and tells you, because an install that silently
+falls behind is worse than one that nags:
 
 | Setting | Default | What it does |
 |---|---|---|
-| Check automatically | **on** | Checks the release manifest on a timer and badges the toolbar icon |
+| Check automatically | **on** | Reads the release manifest on a timer and badges the toolbar icon |
 | How often | 24 hours | Clamped to 1 hour – 14 days |
 | Update manifest | the project's | Point it at your own host if you self-host or run a fork |
 | Never | — | FireSync makes no requests to the update host at all |
 
-When an update exists the toolbar icon shows **↑** and the popup offers a download link.
-"Never" is absolute: even the **Check now** button will not override it.
+The popup shows the running version and whether the browser is managing updates
+(`auto-updating` versus `manual updates`), plus a **Check for updates** button. That button
+does two things: it reads FireSync's own release manifest, which always works, and it calls
+`chrome.runtime.requestUpdateCheck()`, which asks the browser to do a real update check.
 
-On a policy-installed build the panel says so and Chrome does the work.
+A note on that second one, since it is easy to over-promise: `requestUpdateCheck` does issue
+a genuine request to the update URL — that was observed directly in the server log. But it is
+rate-limited by the browser, and in Manifest V3 the service worker that calls it may be
+asleep. So it is a useful nudge rather than a guarantee, and FireSync does not rely on it
+alone.
+
+When an update exists the toolbar icon shows **↑**. On a policy install the popup says it
+will install on restart; on an unpacked install it offers a download link. "Never" is
+absolute: even the **Check now** button will not override it.
 
 ## Uninstalling
 

@@ -14,6 +14,11 @@ function showError(error: unknown): void {
   errorEl.textContent = error instanceof Error ? error.message : String(error);
 }
 
+function setHidden(id: string, hidden: boolean): void {
+  const element = document.getElementById(id);
+  if (element) element.hidden = hidden;
+}
+
 function relative(timestamp: number | null): string {
   if (!timestamp) return 'never synced';
   const seconds = Math.round((Date.now() - timestamp) / 1000);
@@ -29,15 +34,24 @@ function renderStatus(status: VaultStatus): boolean {
   if (!status.connected) {
     statusEl.textContent = 'Not signed in';
     showSignInPrompt();
+    // Nothing to lock and nothing to sync: offering either would be a button
+    // that cannot do anything.
+    setHidden('lock', true);
+    setHidden('sync', true);
     return false;
   }
+  // Lock only exists in passphrase mode. In device mode there is nothing to
+  // withhold, and the button would strand the user on an unlock screen that
+  // has no passphrase to accept.
+  setHidden('lock', status.protection !== 'passphrase');
+  setHidden('sync', false);
   if (!status.unlocked) {
     statusEl.textContent = 'Locked';
     location.href = 'unlock.html';
     return false;
   }
   const counts = status.counts;
-  statusEl.textContent = `${status.email} · ${counts?.passwords ?? 0} logins · ${relative(
+  statusEl.textContent = `${status.email}\n${counts?.passwords ?? 0} logins · ${relative(
     status.lastSyncAt,
   )}`;
   if (status.lastSyncError) showError(status.lastSyncError);
@@ -125,6 +139,36 @@ function renderList(): void {
 }
 
 /**
+ * The version line, and whether Chrome is the one keeping it current.
+ *
+ * "Managed by Chrome" is not a guess: it is true exactly when the running
+ * manifest carries an `update_url`, which is the case for a policy install and
+ * not for a load-unpacked one. The distinction matters, so the popup states
+ * which of the two you have rather than implying updates just happen.
+ */
+async function renderVersion(): Promise<void> {
+  const line = document.getElementById('version-line') as HTMLElement;
+  const managed = document.getElementById('update-managed') as HTMLElement;
+  try {
+    const report = await sendMessage({ type: 'updates/status' });
+    line.textContent = `FireSync ${report.currentVersion}`;
+
+    if (report.state.available) {
+      managed.textContent = `${report.state.available.version} available`;
+    } else if (report.managedByBrowser) {
+      managed.textContent = 'auto-updating';
+      managed.title = 'Installed with an update URL — the browser checks for new versions.';
+    } else {
+      managed.textContent = 'manual updates';
+      managed.title =
+        'Installed without an update URL (load-unpacked), so the browser will not update it.';
+    }
+  } catch {
+    line.textContent = 'FireSync';
+  }
+}
+
+/**
  * A self-hosted build cannot update itself, so the popup is where the user finds
  * out that a new one exists. Shown only when there is genuinely something to do.
  */
@@ -138,16 +182,19 @@ async function renderUpdateBanner(): Promise<void> {
     }
 
     const available = report.state.available;
-    (document.getElementById('update-banner-text') as HTMLElement).textContent =
-      `FireSync ${available.version} is available`;
-
     const link = document.getElementById('update-banner-link') as HTMLAnchorElement;
     const href = available.crx ?? available.zip ?? available.releaseUrl;
-    if (report.managedByBrowser || !href) {
+    const text = document.getElementById('update-banner-text') as HTMLElement;
+
+    if (report.managedByBrowser) {
+      // The browser will fetch it on its own; a download link would just be a
+      // slower way to arrive at the same place.
+      text.textContent = `${available.version} available — installs on restart`;
       link.hidden = true;
     } else {
-      link.hidden = false;
-      link.href = href;
+      text.textContent = `FireSync ${available.version} is available`;
+      link.hidden = !href;
+      if (href) link.href = href;
     }
 
     document.getElementById('update-banner-dismiss')?.addEventListener('click', async () => {
@@ -203,5 +250,33 @@ document.getElementById('options')?.addEventListener('click', () => {
   void chrome.runtime.openOptionsPage();
 });
 
+document.getElementById('check-updates')?.addEventListener('click', async (event) => {
+  const button = event.currentTarget as HTMLButtonElement;
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Checking…';
+  try {
+    const report = await sendMessage({ type: 'updates/check' });
+    await renderVersion();
+    await renderUpdateBanner();
+
+    if (report.state.available) {
+      button.textContent = `${report.state.available.version} available`;
+    } else if (report.state.lastError) {
+      showError(report.state.lastError);
+      button.textContent = original;
+    } else {
+      button.textContent = 'Up to date';
+      setTimeout(() => (button.textContent = original), 2000);
+    }
+  } catch (error) {
+    showError(error);
+    button.textContent = original;
+  } finally {
+    button.disabled = false;
+  }
+});
+
 void load();
+void renderVersion();
 void renderUpdateBanner();

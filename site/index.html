@@ -8,7 +8,10 @@
 <meta property="og:title" content="FireSync">
 <meta property="og:description" content="Take your Mozilla vault — passwords and autofill — to any Chromium browser.">
 <meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%23FF3D7F'/%3E%3Cpath d='M64 27 C66 40 77 47 80 59 C84 75 75 89 63 89 C51 89 42 78 45 65 C47 57 52 52 56 48 C56 56 59 60 62 62 C60 51 62 39 64 27 Z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="icon" type="image/png" sizes="128x128" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta property="og:image" content="https://dixonsolutions.github.io/FireSync/banner.png">
 <style>
   :root{
     --flame:#ff6b35; --ember:#ff3d7f; --violet:#9b5de5;
@@ -208,23 +211,33 @@ sudo bash install.sh</code></pre>
   <div class="wrap">
     <h2>Updates</h2>
     <p class="note">
-      Chrome only auto-updates extensions it manages. An unpacked or drag-installed build never
-      updates itself, and no extension can install a new version of itself — Chrome closes that
-      hole deliberately. So FireSync checks this site for new releases and tells you, with a
-      badge on the toolbar icon and a link in the popup.
+      Installed with the one-command script? <strong>The browser really does update FireSync
+      for you.</strong> That was tested rather than assumed: a new version was published, the
+      browser restarted, and it fetched and installed the update unattended in about six
+      seconds. Chrome checks on startup and roughly every five hours.
+    </p>
+    <p class="note">
+      Loaded unpacked instead? Nothing updates it — Chrome has no mechanism, and no extension
+      can install a new version of itself. That is the main practical reason to prefer the
+      one-command install.
+    </p>
+    <p class="note">
+      Either way FireSync checks its own release manifest and tells you. The popup shows the
+      running version, whether the browser is managing updates, and a <strong>Check for
+      updates</strong> button.
     </p>
     <table>
       <thead><tr><th>Setting</th><th>Default</th><th>Behaviour</th></tr></thead>
       <tbody>
-        <tr><td>Check automatically</td><td>on</td><td>Checks <code>update.json</code> on a timer</td></tr>
+        <tr><td>Check automatically</td><td>on</td><td>Reads <code>update.json</code> on a timer</td></tr>
         <tr><td>How often</td><td>24 h</td><td>Clamped to 1 hour – 14 days</td></tr>
         <tr><td>Update manifest</td><td>this site</td><td>Repoint it if you self-host or run a fork</td></tr>
-        <tr><td>Never</td><td>—</td><td>No requests at all; even “Check now” will not override it</td></tr>
+        <tr><td>Never</td><td>—</td><td>No requests at all; even &ldquo;Check now&rdquo; will not override it</td></tr>
       </tbody>
     </table>
     <p class="note">
-      Feeds: <a href="update.json">update.json</a> (FireSync's own) ·
-      <a href="update.xml">update.xml</a> (Chrome's enterprise-policy format).
+      Feeds: <a href="update.json">update.json</a> (FireSync&rsquo;s own) ·
+      <a href="update.xml">update.xml</a> (Chrome&rsquo;s enterprise-policy format).
     </p>
   </div>
 </section>

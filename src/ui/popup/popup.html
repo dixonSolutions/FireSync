@@ -9,14 +9,29 @@
       header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--fs-border); }
       main { padding: 12px 14px; }
       .status { font-size: 12px; color: var(--fs-text-dim); }
-      ul { list-style: none; margin: 10px 0 0; padding: 0; max-height: 260px; overflow-y: auto; }
+      ul { list-style: none; margin: 10px 0 0; padding: 0; max-height: 232px; overflow-y: auto; }
       li { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; }
       li:hover { background: var(--fs-bg-sunken); }
       .user { font-weight: 600; }
       .origin { font-size: 11px; color: var(--fs-text-dim); }
       .grow { flex: 1; min-width: 0; }
       .grow > div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      header .status { white-space: pre-line; line-height: 1.35; }
       footer { padding: 10px 14px; border-top: 1px solid var(--fs-border); display: flex; gap: 8px; }
+      .version {
+        display: flex; align-items: center; gap: 8px;
+        padding: 7px 14px 9px; border-top: 1px solid var(--fs-border);
+        font-size: 11px; color: var(--fs-text-dim); background: var(--fs-bg-sunken);
+      }
+      .version a { color: inherit; }
+      /* `hidden` is only display:none from the UA sheet, so any inline or
+         class display would silently beat it. Keep the rule explicit. */
+      [hidden] { display: none !important; }
+      .update-banner {
+        display: flex; gap: 8px; align-items: center; padding: 9px 14px;
+        border-bottom: 1px solid var(--fs-border); background: var(--fs-bg-sunken);
+        font-size: 12px;
+      }
     </style>
   </head>
   <body>
@@ -28,9 +43,7 @@
       </div>
       <button class="ghost" id="lock" title="Lock the vault">Lock</button>
     </header>
-    <div id="update-banner" hidden style="
-      display:flex; gap:8px; align-items:center; padding:9px 14px;
-      border-bottom:1px solid var(--fs-border); background:var(--fs-bg-sunken); font-size:12px">
+    <div id="update-banner" class="update-banner" hidden>
       <span class="grow" id="update-banner-text"></span>
       <a id="update-banner-link" target="_blank" rel="noreferrer">Get it</a>
       <button class="ghost" id="update-banner-dismiss" aria-label="Dismiss">✕</button>
@@ -42,9 +55,15 @@
     </main>
     <footer>
       <button class="primary" id="sync">Sync now</button>
+      <button id="check-updates" title="Check for a new version of FireSync">Check for updates</button>
       <span class="spacer"></span>
       <button id="options">Settings</button>
     </footer>
+    <div class="version">
+      <span id="version-line"></span>
+      <span class="spacer"></span>
+      <span id="update-managed" class="muted"></span>
+    </div>
     <script type="module" src="popup.js"></script>
   </body>
 </html>

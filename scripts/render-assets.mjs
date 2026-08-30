@@ -77,9 +77,16 @@ const chrome = findChrome();
 console.log(`rendering with ${chrome}`);
 mkdirSync(iconsDir, { recursive: true });
 
+/**
+ * Small sizes use a simplified mark. The full one's sync ring is under a device
+ * pixel wide at 16px and renders as a halo, so 16 and 32 get a variant with just
+ * the flame. Verified by eye at 1:1 rather than assumed.
+ */
+const SMALL_SIZES = new Set([16, 32]);
+
 for (const size of [16, 32, 48, 128, 256, 512]) {
   shot(chrome, {
-    svg: join(assets, 'icon.svg'),
+    svg: join(assets, SMALL_SIZES.has(size) ? 'icon-small.svg' : 'icon.svg'),
     out: join(iconsDir, `icon-${size}.png`),
     width: size,
     height: size,

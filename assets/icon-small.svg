@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="FireSync">
+  <title>FireSync</title>
+  <!--
+    The 16 and 32 pixel variant.
+
+    The full mark's sync ring is a 7-unit stroke on a 128 grid — under one
+    device pixel at toolbar size, where it renders as a grey halo rather than a
+    ring, and the arrowheads disappear entirely. The inner highlight, which adds
+    depth at 128, reads as a hole at 16.
+
+    So this drops all of it and keeps the one shape that survives: a single bold
+    flame, scaled to fill the tile. Same silhouette, same palette, legible at
+    the size it is actually used.
+  -->
+  <defs>
+    <linearGradient id="tileSmall" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF8A3D"/>
+      <stop offset="0.45" stop-color="#FF3D7F"/>
+      <stop offset="1" stop-color="#9B5DE5"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="26" fill="url(#tileSmall)"/>
+
+  <g transform="translate(62.5 60) scale(1.62) translate(-62.5 -58)">
+    <path d="M64 27 C66 40 77 47 80 59 C84 75 75 89 63 89 C51 89 42 78 45 65 C47 57 52 52 56 48 C56 56 59 60 62 62 C60 51 62 39 64 27 Z"
+          fill="#FFFFFF"/>
+  </g>
+</svg>

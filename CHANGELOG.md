@@ -4,6 +4,35 @@ All notable changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-08-30
+
+### Fixed
+
+- **The icon was illegible at toolbar size.** It was drawn at 128px and never checked small:
+  the sync ring is under a device pixel wide at 16px and rendered as a grey halo, the
+  arrowheads disappeared, and the inner highlight read as a hole. 16 and 32 now use a
+  simplified mark — the flame alone, scaled to fill — while 48 and up keep the full one.
+- **The update banner could never hide.** It carried both a `hidden` attribute and an inline
+  `display: flex`, and an inline style beats the user-agent rule for `[hidden]`. Moved to a
+  class, with an explicit `[hidden] { display: none !important }`.
+- **The popup offered a Lock button with nothing to lock.** In device mode there is no
+  passphrase, so the button led to an unlock screen that could not accept anything. It now
+  appears only when a passphrase is set.
+- The signed-out popup no longer offers Sync now either, which likewise could not work.
+- The site's favicon was a hand-written data URI that did not match the real icon; it now
+  points at the published PNGs.
+
+### Added
+
+- The popup shows the running version and whether the browser is managing updates, plus a
+  **Check for updates** button.
+
+### Changed
+
+- Documentation now states, from a direct test rather than from the documentation, that a
+  policy-installed build genuinely auto-updates: a new version was published, the browser
+  restarted, and it installed unattended in about six seconds.
+
 ## [0.3.0] — 2026-08-30
 
 ### Changed
