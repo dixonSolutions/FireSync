@@ -139,6 +139,48 @@
       </section>
 
       <section class="card">
+        <h2>Updates</h2>
+        <p class="muted" style="font-size:12px;margin-top:0">
+          A self-hosted extension gets no update machinery from Chrome unless it was
+          installed by policy, so FireSync checks for its own releases and tells you.
+          It cannot install one itself — Chrome does not allow that — so an update means
+          downloading the new build.
+        </p>
+        <div class="setting">
+          <div class="grow">
+            <div id="update-state">Checking…</div>
+            <div id="update-detail"></div>
+          </div>
+          <button id="update-check">Check now</button>
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Check automatically</div>
+            <div>Off means FireSync never contacts the update host at all.</div>
+          </div>
+          <select id="update-mode">
+            <option value="auto">Automatically</option>
+            <option value="manual">Only when I ask</option>
+            <option value="off">Never</option>
+          </select>
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>How often</div>
+            <div>Hours between automatic checks.</div>
+          </div>
+          <input type="number" id="update-interval" min="1" max="336" />
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Update manifest</div>
+            <div>Point this at your own host if you self-host or run a fork.</div>
+          </div>
+          <input type="text" id="update-url" style="min-width:260px" spellcheck="false" />
+        </div>
+      </section>
+
+      <section class="card">
         <h2>Import from Firefox <span class="muted" style="font-weight:400">(optional bridge)</span></h2>
         <p class="muted" style="font-size:12px;margin-top:0">
           If the FireSync bridge is installed, logins can be read straight out of a local

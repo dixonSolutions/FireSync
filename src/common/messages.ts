@@ -12,6 +12,7 @@ import type { PasswordRecord } from '../sync15/engines/passwords.ts';
 import type { SyncResult } from '../sync15/engine.ts';
 import type { GlobalPreferences, SitePreferences } from '../prefs/types.ts';
 import type { BridgeInfo, FirefoxProfile } from '../bridge/protocol.ts';
+import type { UpdateState } from '../update/types.ts';
 
 /** A credential summary safe to hand to a content script. */
 export interface CredentialSummary {
@@ -71,6 +72,9 @@ export type Message =
   | { type: 'prefs/forUrl'; pageUrl: string }
   | { type: 'prefs/setForUrl'; pageUrl: string; patch: Partial<SitePreferences> }
   | { type: 'prefs/neverSave'; pageUrl: string }
+  | { type: 'updates/status' }
+  | { type: 'updates/check' }
+  | { type: 'updates/dismiss'; version: string }
   | { type: 'bridge/status' }
   | { type: 'bridge/import'; path: string; primaryPassword?: string }
   | { type: 'menu/resize'; height: number }
@@ -109,10 +113,23 @@ export interface ResponseMap {
   'prefs/forUrl': SitePreferences | null;
   'prefs/setForUrl': SitePreferences;
   'prefs/neverSave': SitePreferences;
+  'updates/status': UpdateReport;
+  'updates/check': UpdateReport;
+  'updates/dismiss': UpdateReport;
   'bridge/status': BridgeStatus;
   'bridge/import': ImportSummary;
   'menu/resize': null;
   'menu/close': null;
+}
+
+/** Everything the UI needs to render the update panel. */
+export interface UpdateReport {
+  currentVersion: string;
+  state: UpdateState;
+  /** Whether the user should be nudged right now. */
+  notify: boolean;
+  /** True when Chrome manages updates for us (policy-installed builds). */
+  managedByBrowser: boolean;
 }
 
 /** What the optional native bridge can do on this machine, if it is installed. */

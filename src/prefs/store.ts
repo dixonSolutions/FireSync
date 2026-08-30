@@ -33,6 +33,7 @@ export class PreferencesStore {
       ...DEFAULT_GLOBAL_PREFERENCES,
       ...stored,
       engines: { ...DEFAULT_GLOBAL_PREFERENCES.engines, ...stored?.engines },
+      updates: { ...DEFAULT_GLOBAL_PREFERENCES.updates, ...stored?.updates },
     };
   }
 

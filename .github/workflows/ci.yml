@@ -1,8 +1,10 @@
 name: CI
 
+# Release.yml covers pushes to main end to end; CI is for pull requests and
+# for branches that are not main, so a merge does not build everything twice.
 on:
   push:
-    branches: [main]
+    branches-ignore: [main]
   pull_request:
 
 concurrency:

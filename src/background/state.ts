@@ -12,6 +12,7 @@ import type { StorageAreas } from '../common/storage.ts';
 import { FxAClient } from '../fxa/client.ts';
 import { PreferencesStore } from '../prefs/store.ts';
 import { SyncEngine } from '../sync15/engine.ts';
+import { UpdateChecker } from '../update/checker.ts';
 import { VaultStore } from '../vault/store.ts';
 
 export const USER_AGENT = 'FireSync/0.1 (+https://github.com/firesync/firesync)';
@@ -21,6 +22,7 @@ let vault: VaultStore | null = null;
 let prefs: PreferencesStore | null = null;
 let fxa: FxAClient | null = null;
 let engine: SyncEngine | null = null;
+let updates: UpdateChecker | null = null;
 
 export function getAreas(): StorageAreas {
   return (areas ??= chromeStorageAreas());
@@ -46,6 +48,14 @@ export function getSyncEngine(): SyncEngine {
   }));
 }
 
+export function getUpdateChecker(): UpdateChecker {
+  return (updates ??= new UpdateChecker({
+    area: getAreas().local,
+    currentVersion: chrome.runtime.getManifest().version,
+    settings: async () => (await getPrefs().global()).updates,
+  }));
+}
+
 /** Drop cached objects — used after a reset so nothing stale survives. */
 export function resetState(): void {
   areas = null;
@@ -53,6 +63,7 @@ export function resetState(): void {
   prefs = null;
   fxa = null;
   engine = null;
+  updates = null;
 }
 
 /** Tell every content script and open page that the lock state changed. */

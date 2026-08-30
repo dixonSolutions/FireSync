@@ -105,6 +105,110 @@ el('disconnect').addEventListener('click', async () => {
   }
 });
 
+// ------------------------------------------------------------------ updates
+
+async function renderUpdates(): Promise<void> {
+  const prefs = await sendMessage({ type: 'prefs/global' });
+  el<HTMLSelectElement>('update-mode').value = prefs.updates.mode;
+  el<HTMLInputElement>('update-interval').value = String(prefs.updates.intervalHours);
+  el<HTMLInputElement>('update-url').value = prefs.updates.manifestUrl;
+
+  const report = await sendMessage({ type: 'updates/status' });
+  const state = el('update-state');
+  const detail = el('update-detail');
+
+  const checked = report.state.lastCheckedAt
+    ? `last checked ${new Date(report.state.lastCheckedAt).toLocaleString()}`
+    : 'never checked';
+
+  if (report.state.available) {
+    const available = report.state.available;
+    state.textContent = `Version ${available.version} is available — you have ${report.currentVersion}`;
+
+    detail.replaceChildren();
+    if (available.notes) detail.append(document.createTextNode(`${available.notes} · `));
+
+    if (report.managedByBrowser) {
+      detail.append(
+        document.createTextNode('Chrome manages this install and will update it for you.'),
+      );
+    } else {
+      for (const [label, href] of [
+        ['Download CRX', available.crx],
+        ['Download ZIP', available.zip],
+        ['Release notes', available.releaseUrl],
+      ] as const) {
+        if (!href) continue;
+        const link = document.createElement('a');
+        link.href = href;
+        link.textContent = label;
+        link.target = '_blank';
+        link.rel = 'noreferrer';
+        link.style.marginRight = '10px';
+        detail.append(link);
+      }
+    }
+
+    const dismiss = document.createElement('button');
+    dismiss.className = 'ghost';
+    dismiss.textContent = 'Dismiss';
+    dismiss.addEventListener('click', async () => {
+      await sendMessage({ type: 'updates/dismiss', version: available.version });
+      await renderUpdates();
+    });
+    detail.append(dismiss);
+    return;
+  }
+
+  state.textContent = `FireSync ${report.currentVersion} — up to date`;
+  detail.textContent = report.state.lastError
+    ? `Last check failed: ${report.state.lastError}`
+    : checked;
+}
+
+el('update-check').addEventListener('click', async (event) => {
+  const button = event.currentTarget as HTMLButtonElement;
+  button.disabled = true;
+  button.textContent = 'Checking…';
+  try {
+    await sendMessage({ type: 'updates/check' });
+    await renderUpdates();
+  } catch (error) {
+    showError(error);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Check now';
+  }
+});
+
+el<HTMLSelectElement>('update-mode').addEventListener('change', async (event) => {
+  const current = await sendMessage({ type: 'prefs/global' });
+  await patch({
+    updates: {
+      ...current.updates,
+      mode: (event.target as HTMLSelectElement).value as typeof current.updates.mode,
+    },
+  });
+  await renderUpdates();
+});
+
+for (const [id, key] of [
+  ['update-interval', 'intervalHours'],
+  ['update-url', 'manifestUrl'],
+] as const) {
+  el<HTMLInputElement>(id).addEventListener('change', async (event) => {
+    const current = await sendMessage({ type: 'prefs/global' });
+    const raw = (event.target as HTMLInputElement).value;
+    await patch({
+      updates: {
+        ...current.updates,
+        [key]: key === 'intervalHours' ? Number(raw) : raw.trim(),
+      },
+    });
+    await renderUpdates();
+  });
+}
+
 // ------------------------------------------------------------- local bridge
 
 /**
@@ -203,4 +307,5 @@ el('bridge-enable').addEventListener('click', async () => {
 });
 
 void render().catch(showError);
+void renderUpdates().catch(showError);
 void renderBridge().catch(showError);

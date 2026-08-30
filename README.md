@@ -8,6 +8,14 @@
   yourself. End-to-end encrypted with your own Sync key. There is no FireSync server.
 </p>
 
+<p align="center">
+  <a href="https://dixonsolutions.github.io/FireSync/"><strong>Download &amp; install</strong></a> ·
+  <a href="https://github.com/dixonSolutions/FireSync/releases">Releases</a> ·
+  <a href="docs/INSTALL.md">Install guide</a> ·
+  <a href="docs/FAQ.md">FAQ</a> ·
+  <a href="NOTICE.md">Notice</a>
+</p>
+
 ## Supported browsers
 
 | Browser | | How to install |
@@ -57,12 +65,18 @@ you. Leave it on and every login form gives you two prompts and two dropdowns.
 
 ## Quick start
 
+**Just want to use it?** Grab a build from
+<https://dixonsolutions.github.io/FireSync/> — the `.crx` for Chromium, the `.zip` for
+everywhere including stock Chrome. Step-by-step: [docs/INSTALL.md](docs/INSTALL.md).
+
+**Building from source:**
+
 ```bash
 git clone <this repo> firesync && cd firesync
 npm install
 npm run assets      # rasterise the icons with headless Chrome
 npm run build       # bundle into dist/
-npm test            # 328 unit + integration tests, no network needed
+npm test            # 355 unit + integration tests, no network needed
 ```
 
 Then load it — **Chromium (or Brave, Vivaldi, ungoogled-chromium) is the smoothest path**:
@@ -125,6 +139,7 @@ and [docs/PROTOCOL.md](docs/PROTOCOL.md).
 | [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Build, debug, add an engine, project conventions |
 | [TESTING.md](docs/TESTING.md) | Test strategy, the fake Sync server, what is deliberately untested |
 | [ROADMAP.md](docs/ROADMAP.md) | What is done, what is next, what is deliberately out of scope |
+| [INSTALL.md](docs/INSTALL.md) | Installing on every browser, first run, updates, uninstalling |
 | [FAQ.md](docs/FAQ.md) | Short answers to the questions this design invites |
 
 ## Status
@@ -148,8 +163,33 @@ Known gaps, stated plainly:
 - **Bookmarks, history, tabs and forms are not synced.** Chrome has no comparable surface
   for most of them and the ones it does have are better served by other tools.
 
+## Updates
+
+Chrome only auto-updates extensions it manages — a policy-installed build, or one from the
+Web Store. An unpacked or drag-installed build never updates itself, and no extension can
+install a new version of itself; Chrome closes that hole deliberately.
+
+So FireSync ships its own update engine: it checks a small release manifest on a timer,
+badges the toolbar icon, and offers a download link. **On by default**, configurable in
+Settings → Updates to manual or off, with the manifest URL repointable for forks and
+self-hosting. "Off" is absolute — it makes no requests at all, and the Check now button will
+not override it.
+
 ## Licence and affiliation
 
-MIT. FireSync is an independent, unofficial project and is not affiliated with, endorsed
-by, or sponsored by Mozilla or Google. "Mozilla", "Firefox", "Chrome" and "Chromium" are
-trademarks of their respective owners, used here only to describe interoperability.
+MIT.
+
+FireSync is an independent **hobby project**. It is not produced, sponsored, endorsed or
+condoned by Mozilla Foundation, Mozilla Corporation, Google LLC or any of their affiliates,
+and it is **not a competing product** — there is nothing to buy, no telemetry, and no
+revenue. Its purpose is to let someone who already uses Firefox Sync reach their own data,
+with their own credentials, from a second browser they also use.
+
+No Mozilla or Google source code is included; the protocol implementation was written from
+public documentation and published RFCs. "Mozilla", "Firefox", "Firefox Sync", "Chrome" and
+"Chromium" are trademarks of their respective owners, used here only nominatively.
+
+If Mozilla, Google or anyone else has a concern with this project, **please get in touch
+before filing a takedown** — we will reply quickly and comply with a reasonable request,
+including removing functionality or taking it down. The full statement is in
+[NOTICE.md](NOTICE.md).

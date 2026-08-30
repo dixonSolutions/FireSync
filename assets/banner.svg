@@ -1,5 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="FireSync">
   <title>FireSync — take your Mozilla vault to any Chromium browser</title>
+  <!--
+    Every text run that sits inside a fixed-width box declares `textLength`.
+    Without it the box is sized to whatever font the renderer happens to pick,
+    and the label spills out of its pill on any machine whose font metrics
+    differ from the author's — including the CI runner that regenerates this.
+    `textLength` makes containment a rendering guarantee instead of a guess.
+  -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#141419"/>
@@ -23,25 +30,18 @@
       <stop offset="0.72" stop-color="#FFD9C2"/>
       <stop offset="1" stop-color="#E6C8FF"/>
     </linearGradient>
-    <linearGradient id="rail" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#FF6B35"/>
-      <stop offset="0.5" stop-color="#FF3D7F"/>
-      <stop offset="1" stop-color="#9B5DE5"/>
-    </linearGradient>
   </defs>
 
   <rect width="1280" height="640" fill="url(#bg)"/>
   <circle cx="150" cy="120" r="420" fill="url(#glowA)"/>
   <circle cx="1140" cy="560" r="440" fill="url(#glowB)"/>
 
-  <!-- faint grid, to read as "tooling" rather than "marketing" -->
   <g stroke="#FFFFFF" stroke-opacity="0.045" stroke-width="1">
     <path d="M0 160H1280M0 320H1280M0 480H1280"/>
     <path d="M160 0V640M320 0V640M480 0V640M640 0V640M800 0V640M960 0V640M1120 0V640"/>
   </g>
 
-  <!-- app mark -->
-  <g transform="translate(104 186) scale(1.35)">
+  <g transform="translate(104 190) scale(1.35)">
     <rect width="128" height="128" rx="28" fill="url(#tile)"/>
     <g fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" opacity="0.92">
       <path d="M22.7 49 A44 44 0 0 1 105.3 49"/>
@@ -55,32 +55,36 @@
   </g>
 
   <g font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
-    <text x="330" y="288" fill="url(#word)" font-size="104" font-weight="700" letter-spacing="-3">FireSync</text>
-    <text x="334" y="342" fill="#C9C6D6" font-size="27" font-weight="500">Take your Mozilla vault to any Chromium browser.</text>
-    <text x="334" y="382" fill="#8E8AA0" font-size="21" font-weight="400">Passwords · autofill · per-site settings — end-to-end encrypted, no server</text>
+    <text x="332" y="292" fill="url(#word)" font-size="104" font-weight="700" letter-spacing="-3">FireSync</text>
 
-    <g font-size="19" font-weight="600" fill="#C9C6D6">
-      <g transform="translate(334 424)">
-        <rect width="124" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
-        <text x="22" y="27">Chromium</text>
+    <text x="336" y="346" fill="#C9C6D6" font-size="27" font-weight="500"
+          textLength="648" lengthAdjust="spacing">Take your Mozilla vault to any Chromium browser.</text>
+
+    <text x="336" y="386" fill="#8E8AA0" font-size="21" font-weight="400"
+          textLength="792" lengthAdjust="spacing">Passwords · autofill · per-site settings — end-to-end encrypted, no server</text>
+
+    <!-- Browser pills. Each label is centred and length-locked inside its box. -->
+    <g font-size="19" font-weight="600" fill="#C9C6D6" text-anchor="middle">
+      <g transform="translate(336 428)">
+        <rect width="132" height="44" rx="22" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
+        <text x="66" y="28" textLength="86" lengthAdjust="spacingAndGlyphs">Chromium</text>
       </g>
-      <g transform="translate(474 424)">
-        <rect width="104" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
-        <text x="22" y="27">Chrome</text>
+      <g transform="translate(484 428)">
+        <rect width="110" height="44" rx="22" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
+        <text x="55" y="28" textLength="64" lengthAdjust="spacingAndGlyphs">Chrome</text>
       </g>
-      <g transform="translate(594 424)">
-        <rect width="94" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
-        <text x="22" y="27">Brave</text>
+      <g transform="translate(610 428)">
+        <rect width="98" height="44" rx="22" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
+        <text x="49" y="28" textLength="52" lengthAdjust="spacingAndGlyphs">Brave</text>
       </g>
-      <g transform="translate(704 424)">
-        <rect width="84" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
-        <text x="22" y="27">Edge</text>
+      <g transform="translate(724 428)">
+        <rect width="88" height="44" rx="22" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
+        <text x="44" y="28" textLength="42" lengthAdjust="spacingAndGlyphs">Edge</text>
       </g>
-      <g transform="translate(804 424)">
-        <rect width="114" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
-        <text x="22" y="27">Vivaldi</text>
+      <g transform="translate(828 428)">
+        <rect width="112" height="44" rx="22" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
+        <text x="56" y="28" textLength="66" lengthAdjust="spacingAndGlyphs">Vivaldi</text>
       </g>
+    </g>
   </g>
-
-  <rect x="0" y="626" width="1280" height="14" fill="url(#rail)"/>
 </svg>

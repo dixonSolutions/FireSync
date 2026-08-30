@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FireSync — take your Mozilla vault to any Chromium browser</title>
+<meta name="description" content="Sign in to your Mozilla account and use your Firefox passwords and autofill in Chrome or Chromium. End-to-end encrypted with your own Sync key. No server.">
+<meta property="og:title" content="FireSync">
+<meta property="og:description" content="Take your Mozilla vault — passwords and autofill — to any Chromium browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%23FF3D7F'/%3E%3Cpath d='M64 27 C66 40 77 47 80 59 C84 75 75 89 63 89 C51 89 42 78 45 65 C47 57 52 52 56 48 C56 56 59 60 62 62 C60 51 62 39 64 27 Z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --flame:#ff6b35; --ember:#ff3d7f; --violet:#9b5de5;
+    --bg:#ffffff; --sunken:#f6f6f8; --surface:#fff; --border:#e4e4ea;
+    --text:#17171c; --dim:#5d5d68; --ok:#12805c; --warn:#a4590a;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#141419; --sunken:#1b1b22; --surface:#1f1f27; --border:#33333e;
+           --text:#f2f2f5; --dim:#a2a2b0; --ok:#4ad2a3; --warn:#f0b45f; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px;margin:0 auto;padding:0 22px}
+  a{color:inherit;text-decoration:none;border-bottom:1px solid color-mix(in srgb, var(--violet) 55%, transparent)}
+  a:hover{border-bottom-color:var(--violet)}
+  code,kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
+       background:var(--sunken);border:1px solid var(--border);border-radius:5px;padding:1px 5px}
+  pre{background:var(--sunken);border:1px solid var(--border);border-radius:10px;
+      padding:14px 16px;overflow-x:auto;font-size:13.5px;line-height:1.55}
+  pre code{background:none;border:0;padding:0}
+
+  header{padding:64px 0 40px;border-bottom:1px solid var(--border);
+         background:radial-gradient(1000px 400px at 15% -10%, color-mix(in srgb, var(--flame) 16%, transparent), transparent 70%),
+                    radial-gradient(900px 400px at 95% 10%, color-mix(in srgb, var(--violet) 16%, transparent), transparent 70%)}
+  .brand{display:flex;align-items:center;gap:18px;margin-bottom:22px}
+  .mark{width:74px;height:74px;flex:none;border-radius:18px;
+        background:linear-gradient(135deg,#ff8a3d,var(--ember) 45%,var(--violet));
+        display:grid;place-items:center;box-shadow:0 10px 30px color-mix(in srgb, var(--ember) 30%, transparent)}
+  .mark svg{width:70%;height:70%}
+  h1{font-size:44px;letter-spacing:-.03em;margin:0;line-height:1.05}
+  .lede{font-size:20px;color:var(--dim);margin:0 0 6px;max-width:60ch}
+  .sub{font-size:14.5px;color:var(--dim);margin:0}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:26px 0 30px}
+  .chip{font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;
+        border:1px solid var(--border);background:var(--surface);color:var(--dim)}
+  .cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .btn{display:inline-block;font-weight:600;font-size:15px;padding:11px 20px;border-radius:10px;
+       border:1px solid var(--border);background:var(--surface);color:var(--text)}
+  .btn.primary{border:0;color:#fff;background:linear-gradient(135deg,var(--flame),var(--ember))}
+  .btn:hover{border-color:var(--violet)}
+  .btn.primary:hover{filter:brightness(1.06)}
+  .ver{font-size:13.5px;color:var(--dim)}
+
+  section{padding:44px 0;border-bottom:1px solid var(--border)}
+  section:last-of-type{border-bottom:0}
+  h2{font-size:24px;letter-spacing:-.02em;margin:0 0 6px}
+  h3{font-size:17px;margin:26px 0 8px}
+  .note{font-size:14.5px;color:var(--dim);margin-top:0}
+  table{width:100%;border-collapse:collapse;font-size:14.5px;margin:14px 0}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--dim);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
+  .yes{color:var(--ok);font-weight:600}
+  .cond{color:var(--warn);font-weight:600}
+  ol{padding-left:20px} ol li{margin:6px 0}
+  .callout{border-left:3px solid var(--violet);background:var(--sunken);
+           padding:12px 16px;border-radius:0 10px 10px 0;font-size:14.5px;margin:18px 0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:16px}
+  .card{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:15px 17px}
+  .card h4{margin:0 0 4px;font-size:15px}
+  .card p{margin:0;font-size:14px;color:var(--dim)}
+  footer{padding:34px 0 60px;color:var(--dim);font-size:13.5px}
+  footer a{color:var(--dim)}
+  @media (max-width:560px){ h1{font-size:34px} .lede{font-size:18px} .mark{width:58px;height:58px} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 128 128" aria-hidden="true">
+          <g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".92">
+            <path d="M22.7 49 A44 44 0 0 1 105.3 49"/><path d="M105.3 79 A44 44 0 0 1 22.7 79"/>
+          </g>
+          <g fill="#fff" opacity=".92">
+            <polygon points="108.4,57.5 98.7,51.4 111.9,46.6"/>
+            <polygon points="19.6,70.5 29.3,76.6 16.1,81.4"/>
+          </g>
+          <path d="M64 27 C66 40 77 47 80 59 C84 75 75 89 63 89 C51 89 42 78 45 65 C47 57 52 52 56 48 C56 56 59 60 62 62 C60 51 62 39 64 27 Z" fill="#fff"/>
+        </svg>
+      </div>
+      <h1>FireSync</h1>
+    </div>
+
+    <p class="lede">Take your Mozilla vault — passwords and autofill — to any Chromium browser.</p>
+    <p class="sub">End-to-end encrypted with your own Sync key. No FireSync server, no account, no telemetry.</p>
+
+    <div class="chips">
+      <span class="chip">Chromium</span><span class="chip">Chrome</span><span class="chip">Brave</span>
+      <span class="chip">Edge</span><span class="chip">Vivaldi</span>
+    </div>
+
+    <div class="cta">
+      <a class="btn primary" id="dl-zip" href="https://github.com/dixonSolutions/FireSync/releases/latest">Download ZIP</a>
+      <a class="btn" id="dl-crx" href="https://github.com/dixonSolutions/FireSync/releases/latest">Download CRX</a>
+      <a class="btn" href="https://github.com/dixonSolutions/FireSync">Source on GitHub</a>
+    </div>
+    <p class="ver" id="version">Loading the latest release…</p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>What it does</h2>
+    <p class="note">
+      Firefox Sync is an open, documented, end-to-end encrypted protocol. FireSync speaks it
+      directly from a Chromium extension, so logins you save in Firefox appear in Chrome, and
+      logins you save in Chrome appear back in Firefox. No bridge service, no export file, no
+      third party holding your vault.
+    </p>
+    <div class="grid">
+      <div class="card"><h4>Two-way sync</h4><p>Passwords and addresses over Sync 1.5, with last-writer-wins conflict resolution — the same rule Firefox uses.</p></div>
+      <div class="card"><h4>Autofill &amp; save prompts</h4><p>FireSync draws its own, because Chrome does not let extensions into the native ones.</p></div>
+      <div class="card"><h4>Per-site preferences</h4><p>Never-save, match strategy, menu behaviour — kept in a private synced collection.</p></div>
+      <div class="card"><h4>Encrypted at rest</h4><p>AES-256-GCM under a passphrase that never leaves the device. Auto-locks when idle.</p></div>
+      <div class="card"><h4>Local Firefox import</h4><p>An optional bridge reads your profile off disk. No account, no network.</p></div>
+      <div class="card"><h4>No server</h4><p>Nothing to breach, nothing to trust. The extension talks to Mozilla and nobody else.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Supported browsers</h2>
+    <table>
+      <thead><tr><th>Browser</th><th>Status</th><th>How to install</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Chromium</strong></td><td class="yes">works</td><td>Drop in the CRX, load unpacked, <code>--load-extension</code>, or policy</td></tr>
+        <tr><td><strong>Brave · Vivaldi · ungoogled-chromium</strong></td><td class="yes">works</td><td>Same as Chromium</td></tr>
+        <tr><td><strong>Microsoft Edge</strong></td><td class="yes">works</td><td>Load unpacked, or policy with self-hosting</td></tr>
+        <tr><td><strong>Google Chrome</strong></td><td class="cond">conditional</td><td>Developer mode, or enterprise policy on a <strong>managed</strong> browser</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <strong>Why Chrome is fussier.</strong> Chrome requires a Web&nbsp;Store-issued
+      <em>publisher proof</em> inside every CRX and rejects anything else off-store with
+      <code>CRX_REQUIRED_PROOF_MISSING</code>. There is no way to generate one yourself. The
+      exemptions are developer mode and enterprise policy on a managed browser. Chromium
+      enforces none of this, which is why it is the recommended target.
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Install</h2>
+
+    <h3>Chromium, Brave, Vivaldi, ungoogled-chromium</h3>
+    <ol>
+      <li>Download the <strong>CRX</strong> above.</li>
+      <li>Open <code>chrome://extensions</code>.</li>
+      <li>Turn on <strong>Developer mode</strong>.</li>
+      <li>Drag the <code>.crx</code> onto the page and confirm.</li>
+    </ol>
+
+    <h3>Google Chrome, or any browser — the always-works route</h3>
+    <ol>
+      <li>Download the <strong>ZIP</strong> above and unzip it.</li>
+      <li><code>chrome://extensions</code> → <strong>Developer mode</strong> → <strong>Load unpacked</strong>.</li>
+      <li>Select the unzipped folder.</li>
+    </ol>
+
+    <h3>Managed Chrome, with auto-updates</h3>
+    <pre><code>sudo packaging/linux/install-policy.sh &lt;extension-id&gt; \
+  https://dixonsolutions.github.io/FireSync/update.xml</code></pre>
+    <p class="note">
+      Requires AD / Entra ID / MDM, or a free Chrome Enterprise Core enrolment. Windows and
+      macOS scripts are in <code>packaging/</code>.
+    </p>
+
+    <h3>Then</h3>
+    <ol>
+      <li>Set a FireSync passphrase — it encrypts the vault on this device, and there is no recovery.</li>
+      <li>Connect your Mozilla account. 2FA and confirmation codes are handled.</li>
+      <li><strong>Turn off Chrome's own password manager</strong> at <code>chrome://settings/autofill</code>,
+          or you get two prompts on every login form.</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Updates</h2>
+    <p class="note">
+      Chrome only auto-updates extensions it manages. An unpacked or drag-installed build never
+      updates itself, and no extension can install a new version of itself — Chrome closes that
+      hole deliberately. So FireSync checks this site for new releases and tells you, with a
+      badge on the toolbar icon and a link in the popup.
+    </p>
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Behaviour</th></tr></thead>
+      <tbody>
+        <tr><td>Check automatically</td><td>on</td><td>Checks <code>update.json</code> on a timer</td></tr>
+        <tr><td>How often</td><td>24 h</td><td>Clamped to 1 hour – 14 days</td></tr>
+        <tr><td>Update manifest</td><td>this site</td><td>Repoint it if you self-host or run a fork</td></tr>
+        <tr><td>Never</td><td>—</td><td>No requests at all; even “Check now” will not override it</td></tr>
+      </tbody>
+    </table>
+    <p class="note">
+      Feeds: <a href="update.json">update.json</a> (FireSync's own) ·
+      <a href="update.xml">update.xml</a> (Chrome's enterprise-policy format).
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Documentation</h2>
+    <div class="grid">
+      <div class="card"><h4><a href="https://github.com/dixonSolutions/FireSync/blob/main/docs/INSTALL.md">Install</a></h4><p>Every platform, first run, uninstalling.</p></div>
+      <div class="card"><h4><a href="https://github.com/dixonSolutions/FireSync/blob/main/docs/ARCHITECTURE.md">Architecture</a></h4><p>The five layers and how they fit.</p></div>
+      <div class="card"><h4><a href="https://github.com/dixonSolutions/FireSync/blob/main/docs/PROTOCOL.md">Protocol</a></h4><p>Every request, key derivation and record format.</p></div>
+      <div class="card"><h4><a href="https://github.com/dixonSolutions/FireSync/blob/main/docs/SECURITY.md">Security</a></h4><p>Threat model, key hierarchy, what is not defended.</p></div>
+      <div class="card"><h4><a href="https://github.com/dixonSolutions/FireSync/blob/main/docs/AUTOFILL.md">Autofill</a></h4><p>Detection heuristics and the overlay design.</p></div>
+      <div class="card"><h4><a href="https://github.com/dixonSolutions/FireSync/blob/main/docs/BRIDGE.md">Bridge</a></h4><p>The optional local helper.</p></div>
+      <div class="card"><h4><a href="https://github.com/dixonSolutions/FireSync/blob/main/docs/TESTING.md">Testing</a></h4><p>355 tests, and how to try it safely.</p></div>
+      <div class="card"><h4><a href="https://github.com/dixonSolutions/FireSync/blob/main/docs/FAQ.md">FAQ</a></h4><p>Short answers to the obvious questions.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Status, honestly</h2>
+    <p class="note">
+      Alpha. The protocol layers are complete and covered end to end against an in-memory Sync
+      server, but have not been exercised against a large real account. Test with a throwaway
+      Mozilla account first, and export your logins from Firefox before you point it at
+      anything you care about.
+    </p>
+    <p class="note">
+      Credit cards are read-only and off by default. The OAuth client identifier is borrowed
+      from Mozilla, because they offer no way to register one — it works, it is unsanctioned,
+      and it is stated plainly in the
+      <a href="https://github.com/dixonSolutions/FireSync/blob/main/NOTICE.md">notice</a>.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      FireSync is an independent hobby project. It is <strong>not</strong> produced, sponsored,
+      endorsed or condoned by Mozilla or Google, and it is not a competing product. No Mozilla
+      or Google source code is included. “Mozilla”, “Firefox”, “Chrome” and “Chromium” are
+      trademarks of their respective owners, used here only to describe interoperability.
+      <a href="https://github.com/dixonSolutions/FireSync/blob/main/NOTICE.md">Full notice</a>.
+    </p>
+    <p>MIT licensed · <a href="https://github.com/dixonSolutions/FireSync">GitHub</a> ·
+       <a href="https://github.com/dixonSolutions/FireSync/issues">Issues</a></p>
+  </div>
+</footer>
+
+<script>
+// Fill the download links from the release manifest this site also serves, so the
+// page never goes stale relative to what is actually published next to it.
+(async () => {
+  const version = document.getElementById('version');
+  try {
+    const response = await fetch('update.json', { cache: 'no-cache' });
+    if (!response.ok) throw new Error(String(response.status));
+    const manifest = await response.json();
+
+    const zip = document.getElementById('dl-zip');
+    const crx = document.getElementById('dl-crx');
+    if (manifest.zip) zip.href = manifest.zip;
+    if (manifest.crx) crx.href = manifest.crx;
+    else { crx.style.display = 'none'; }
+
+    const released = manifest.releasedAt
+      ? new Date(manifest.releasedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })
+      : null;
+    version.textContent =
+      `Latest: v${manifest.version}` + (released ? ` · released ${released}` : '') +
+      (manifest.notes ? ` · ${manifest.notes}` : '');
+  } catch {
+    version.innerHTML =
+      'Could not read the release manifest — grab the files from ' +
+      '<a href="https://github.com/dixonSolutions/FireSync/releases/latest">GitHub Releases</a>.';
+  }
+})();
+</script>
+</body>
+</html>

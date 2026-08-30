@@ -90,6 +90,43 @@ function renderList(): void {
   }
 }
 
+/**
+ * A self-hosted build cannot update itself, so the popup is where the user finds
+ * out that a new one exists. Shown only when there is genuinely something to do.
+ */
+async function renderUpdateBanner(): Promise<void> {
+  const banner = document.getElementById('update-banner') as HTMLDivElement;
+  try {
+    const report = await sendMessage({ type: 'updates/status' });
+    if (!report.notify || !report.state.available) {
+      banner.hidden = true;
+      return;
+    }
+
+    const available = report.state.available;
+    (document.getElementById('update-banner-text') as HTMLElement).textContent =
+      `FireSync ${available.version} is available`;
+
+    const link = document.getElementById('update-banner-link') as HTMLAnchorElement;
+    const href = available.crx ?? available.zip ?? available.releaseUrl;
+    if (report.managedByBrowser || !href) {
+      link.hidden = true;
+    } else {
+      link.hidden = false;
+      link.href = href;
+    }
+
+    document.getElementById('update-banner-dismiss')?.addEventListener('click', async () => {
+      await sendMessage({ type: 'updates/dismiss', version: available.version });
+      banner.hidden = true;
+    });
+
+    banner.hidden = false;
+  } catch {
+    banner.hidden = true;
+  }
+}
+
 async function load(): Promise<void> {
   try {
     const status = await sendMessage({ type: 'vault/status' });
@@ -132,3 +169,4 @@ document.getElementById('options')?.addEventListener('click', () => {
 });
 
 void load();
+void renderUpdateBanner();

@@ -22,8 +22,13 @@ SOFTWARE.
 
 ---
 
-FireSync is an independent, unofficial project. It is not affiliated with,
-endorsed by, or sponsored by Mozilla Foundation, Mozilla Corporation, Google
-LLC, or any of their subsidiaries. "Mozilla", "Firefox", "Firefox Sync",
+FireSync is an independent, unofficial hobby project. It is not produced,
+sponsored, endorsed, or condoned by Mozilla Foundation, Mozilla Corporation,
+Google LLC, or any of their subsidiaries, and it is not a competing product.
+No Mozilla or Google source code is included; the protocol implementation was
+written from public documentation. "Mozilla", "Firefox", "Firefox Sync",
 "Chrome" and "Chromium" are trademarks of their respective owners and are used
 here only nominatively, to describe interoperability.
+
+See NOTICE.md for the full statement, including a standing commitment to
+respond to and comply with any concern raised by those organisations.

@@ -31,6 +31,9 @@ export interface SitePreferences {
   updatedAt: number;
 }
 
+import type { UpdateSettings } from '../update/types.ts';
+import { DEFAULT_UPDATE_SETTINGS } from '../update/types.ts';
+
 export interface GlobalPreferences {
   /** Show the in-field autofill menu at all. */
   inlineMenu: InlineMenuMode;
@@ -54,6 +57,9 @@ export interface GlobalPreferences {
   };
   /** Push FireSync's own settings into the `firesync-prefs` collection. */
   syncSitePreferences: boolean;
+  /** How FireSync looks for its own updates. Self-hosted builds get no
+   *  update machinery from Chrome unless they were installed by policy. */
+  updates: UpdateSettings;
   theme: 'system' | 'light' | 'dark';
 }
 
@@ -67,6 +73,7 @@ export const DEFAULT_GLOBAL_PREFERENCES: GlobalPreferences = {
   defaultMatchStrategy: 'domain',
   engines: { passwords: true, addresses: true, creditcards: false, prefs: true },
   syncSitePreferences: true,
+  updates: DEFAULT_UPDATE_SETTINGS,
   theme: 'system',
 };
 

@@ -28,6 +28,13 @@
       </div>
       <button class="ghost" id="lock" title="Lock the vault">Lock</button>
     </header>
+    <div id="update-banner" hidden style="
+      display:flex; gap:8px; align-items:center; padding:9px 14px;
+      border-bottom:1px solid var(--fs-border); background:var(--fs-bg-sunken); font-size:12px">
+      <span class="grow" id="update-banner-text"></span>
+      <a id="update-banner-link" target="_blank" rel="noreferrer">Get it</a>
+      <button class="ghost" id="update-banner-dismiss" aria-label="Dismiss">✕</button>
+    </div>
     <main>
       <input type="text" id="filter" placeholder="Filter logins…" autocomplete="off" />
       <ul id="list"></ul>

@@ -1,0 +1,257 @@
+name: Release
+
+# Every push to main builds, and publishes a release when package.json carries a
+# version that has not been tagged yet. The Pages site redeploys on every push,
+# so documentation and download links never drift from what is actually shipped.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      republish:
+        description: 'Rebuild and overwrite the release for the current version'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  PAGES_BASE: https://dixonsolutions.github.io/FireSync
+  REPO_URL: https://github.com/dixonSolutions/FireSync
+
+jobs:
+  build:
+    name: build · sign · assemble
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      should_release: ${{ steps.meta.outputs.should_release }}
+      signed: ${{ steps.pack.outputs.signed }}
+      extension_id: ${{ steps.pack.outputs.extension_id }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.x'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Render brand assets
+        run: npm run assets
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+
+      - name: Build
+        run: npm run build
+
+      - name: Work out whether this is a new version
+        id: meta
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+
+          if [ "${{ inputs.republish }}" = "true" ]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "Republish requested for $TAG."
+          elif git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "$TAG already exists — building only, no release."
+          else
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "$TAG is new — will publish a release."
+          fi
+
+      - name: Package
+        id: pack
+        env:
+          SIGNING_KEY: ${{ secrets.FIRESYNC_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.meta.outputs.version }}"
+          mkdir -p build
+
+          # The zip is the always-works artifact: load-unpacked works on every
+          # browser, including a stock Chrome that will refuse a CRX.
+          ( cd dist && zip -qr "../build/firesync-$VERSION.zip" . )
+          echo "zip: $(du -h "build/firesync-$VERSION.zip" | cut -f1)"
+
+          if [ -n "${SIGNING_KEY:-}" ]; then
+            mkdir -p keys
+            printf '%s' "$SIGNING_KEY" | base64 -d > keys/firesync.pem
+            chmod 600 keys/firesync.pem
+            FIRESYNC_UPDATE_BASE="${{ env.PAGES_BASE }}/download" npm run pack
+            ID="$(head -1 build/extension-id.txt)"
+            echo "signed=true"          >> "$GITHUB_OUTPUT"
+            echo "extension_id=$ID"     >> "$GITHUB_OUTPUT"
+            echo "Signed as $ID"
+            # Do not leave a private key on the runner filesystem.
+            shred -u keys/firesync.pem 2>/dev/null || rm -f keys/firesync.pem
+          else
+            echo "signed=false"     >> "$GITHUB_OUTPUT"
+            echo "extension_id="    >> "$GITHUB_OUTPUT"
+            echo "::warning::FIRESYNC_SIGNING_KEY is not set — publishing the zip only."
+          fi
+
+      - name: Assemble the Pages site
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.meta.outputs.version }}"
+          SIGNED="${{ steps.pack.outputs.signed }}"
+          ID="${{ steps.pack.outputs.extension_id }}"
+          RELEASED="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          NOTES="$(git log -1 --pretty=%s)"
+
+          mkdir -p _site/download
+          cp site/index.html _site/index.html
+          cp assets/icons/icon-128.png _site/icon.png
+          cp assets/banner.png _site/banner.png
+
+          cp "build/firesync-$VERSION.zip" _site/download/
+          ZIP_URL="${{ env.PAGES_BASE }}/download/firesync-$VERSION.zip"
+          CRX_URL=""
+
+          if [ "$SIGNED" = "true" ]; then
+            cp "build/firesync-$VERSION.crx" _site/download/
+            cp build/update.xml _site/update.xml
+            CRX_URL="${{ env.PAGES_BASE }}/download/firesync-$VERSION.crx"
+          fi
+
+          # FireSync's own update feed. The extension reads this; the site's
+          # download buttons read it too, so neither can drift from the other.
+          node -e '
+            const fs = require("node:fs");
+            const [version, released, notes, zip, crx, id, repo] = process.argv.slice(1);
+            const manifest = { version, releasedAt: released, notes, zip };
+            if (crx) manifest.crx = crx;
+            manifest.releaseUrl = `${repo}/releases/tag/v${version}`;
+            manifest.minimumChromeVersion = require("./dist/manifest.json").minimum_chrome_version;
+            if (id) manifest.extensionId = id;
+            fs.writeFileSync("_site/update.json", JSON.stringify(manifest, null, 2) + "\n");
+            console.log(fs.readFileSync("_site/update.json", "utf8"));
+          ' "$VERSION" "$RELEASED" "$NOTES" "$ZIP_URL" "$CRX_URL" "$ID" "${{ env.REPO_URL }}"
+
+          # GitHub Pages does not generate directory listings, so make one.
+          {
+            echo '<!doctype html><meta charset="utf-8"><title>FireSync downloads</title>'
+            echo '<style>body{font:15px/1.6 system-ui,sans-serif;max-width:640px;margin:60px auto;padding:0 20px;color-scheme:light dark}'
+            echo 'li{margin:6px 0}code{font-family:ui-monospace,monospace}</style>'
+            echo "<h1>FireSync downloads</h1><p>Version <code>$VERSION</code>, built $RELEASED.</p><ul>"
+            for f in _site/download/*; do
+              [ -e "$f" ] || continue
+              name="$(basename "$f")"
+              echo "<li><a href=\"$name\">$name</a> — $(du -h "$f" | cut -f1)</li>"
+            done
+            echo "</ul><p>Older versions: <a href=\"${{ env.REPO_URL }}/releases\">GitHub Releases</a>."
+            echo "<br>Install instructions: <a href=\"../\">firesync home</a>.</p>"
+          } > _site/download/index.html
+
+          # Stop Jekyll from eating files that start with an underscore.
+          touch _site/.nojekyll
+          find _site -type f | sort
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: release-assets
+          path: build/firesync-*.*
+          retention-days: 30
+          if-no-files-found: error
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  release:
+    name: publish release
+    needs: build
+    if: needs.build.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v5
+        with:
+          name: release-assets
+          path: build
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.build.outputs.version }}"
+          TAG="${{ needs.build.outputs.tag }}"
+          ID="${{ needs.build.outputs.extension_id }}"
+
+          {
+            echo "## Install"
+            echo
+            echo "**Chromium, Brave, Vivaldi, ungoogled-chromium** — download the \`.crx\`,"
+            echo "open \`chrome://extensions\`, turn on Developer mode, and drag it in."
+            echo
+            echo "**Google Chrome, or anywhere** — download the \`.zip\`, unzip it, then"
+            echo "\`chrome://extensions\` → Developer mode → Load unpacked. Stock Chrome"
+            echo "refuses off-store CRXs; that is a Chrome rule, not a packaging fault."
+            echo
+            echo "Full instructions: <${{ env.PAGES_BASE }}/>"
+            if [ -n "$ID" ]; then
+              echo
+              echo "Extension ID: \`$ID\`"
+            fi
+            echo
+            echo "## Changes"
+            echo
+            if git rev-parse "$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo '')" >/dev/null 2>&1; then
+              PREV="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null)"
+              git log --pretty='- %s' "$PREV..HEAD"
+            else
+              git log --pretty='- %s' -20
+            fi
+            echo
+            echo "---"
+            echo
+            echo "FireSync is an independent hobby project, not affiliated with or endorsed"
+            echo "by Mozilla or Google. See [NOTICE.md](${{ env.REPO_URL }}/blob/main/NOTICE.md)."
+          } > notes.md
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" build/firesync-* --clobber
+            gh release edit "$TAG" --notes-file notes.md
+            echo "Updated existing release $TAG."
+          else
+            gh release create "$TAG" build/firesync-* \
+              --title "FireSync $VERSION" \
+              --notes-file notes.md
+            echo "Created release $TAG."
+          fi
+
+  pages:
+    name: deploy site
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -10,6 +10,7 @@
  */
 
 import { fail, ok } from '../common/messages.ts';
+import { UpdateChecker } from '../update/checker.ts';
 import type { CredentialSummary, Message, Reply, ResponseMap, VaultStatus } from '../common/messages.ts';
 import { BridgeClient } from '../bridge/client.ts';
 import { BridgeUnavailableError } from '../bridge/protocol.ts';
@@ -19,7 +20,15 @@ import { originMatches } from '../match/uri.ts';
 import { newPasswordRecord } from '../sync15/engines/passwords.ts';
 import { passwordAuthorityTime } from '../sync15/engines/passwords.ts';
 import { VaultLockedError } from '../vault/crypto.ts';
-import { broadcast, getFxaClient, getPrefs, getSyncEngine, getVault, USER_AGENT } from './state.ts';
+import {
+  broadcast,
+  getFxaClient,
+  getPrefs,
+  getSyncEngine,
+  getUpdateChecker,
+  getVault,
+  USER_AGENT,
+} from './state.ts';
 
 /**
  * The in-flight sign-in, if any. Held in memory only: it contains a session
@@ -246,6 +255,7 @@ async function handle(message: Message, sender: chrome.runtime.MessageSender): P
       const next = await prefs.setGlobal(message.patch);
       await scheduleAutoLock();
       await schedulePeriodicSync();
+      await scheduleUpdateCheck();
       return next;
     }
 
@@ -257,6 +267,20 @@ async function handle(message: Message, sender: chrome.runtime.MessageSender): P
 
     case 'prefs/neverSave':
       return prefs.setForUrl(senderUrl(sender, message.pageUrl), { neverSave: true });
+
+    // ------------------------------------------------------------ updates
+    case 'updates/status':
+      return updateReport();
+
+    case 'updates/check':
+      await getUpdateChecker().check(true);
+      // Policy-installed builds really can update; ask Chrome to try too.
+      await chrome.runtime.requestUpdateCheck?.().catch(() => undefined);
+      return updateReport();
+
+    case 'updates/dismiss':
+      await getUpdateChecker().dismiss(message.version);
+      return updateReport();
 
     // ------------------------------------------------------------- bridge
     case 'bridge/status':
@@ -305,6 +329,24 @@ function navigatorLabel(): string {
   if (/CrOS/.test(agent)) return 'ChromeOS';
   if (/Linux/.test(agent)) return 'Linux';
   return 'Chrome';
+}
+
+/**
+ * Assemble the update panel's data.
+ *
+ * `managedByBrowser` is how the UI knows whether to say "download it" or "Chrome
+ * will handle this": a policy-installed build genuinely auto-updates, an
+ * unpacked one never can.
+ */
+async function updateReport() {
+  const checker = getUpdateChecker();
+  const [state, notify] = await Promise.all([checker.state(), checker.shouldNotify()]);
+  return {
+    currentVersion: chrome.runtime.getManifest().version,
+    state,
+    notify,
+    managedByBrowser: typeof chrome.runtime.getManifest().update_url === 'string',
+  };
 }
 
 /**
@@ -398,6 +440,7 @@ function queueSync(): void {
 export const ALARM = {
   sync: 'firesync.sync',
   autoLock: 'firesync.autolock',
+  updateCheck: 'firesync.updatecheck',
 } as const;
 
 export async function schedulePeriodicSync(): Promise<void> {
@@ -406,6 +449,24 @@ export async function schedulePeriodicSync(): Promise<void> {
   if (syncIntervalMinutes > 0) {
     await chrome.alarms.create(ALARM.sync, { periodInMinutes: syncIntervalMinutes });
   }
+}
+
+/**
+ * Re-arm the update alarm. Cleared entirely when updates are off, so a user who
+ * turned them off makes no requests at all rather than merely ignoring them.
+ */
+export async function scheduleUpdateCheck(): Promise<void> {
+  const { updates } = await getPrefs().global();
+  await chrome.alarms.clear(ALARM.updateCheck);
+  if (updates.mode !== 'auto') return;
+
+  const hours = UpdateChecker.clampInterval(updates.intervalHours);
+  await chrome.alarms.create(ALARM.updateCheck, {
+    periodInMinutes: hours * 60,
+    // Stagger the first check so a browser restart does not send every install
+    // at the host in the same second.
+    delayInMinutes: 3 + Math.floor(Math.random() * 10),
+  });
 }
 
 export async function scheduleAutoLock(): Promise<void> {
