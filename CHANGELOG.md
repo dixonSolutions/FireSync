@@ -53,11 +53,29 @@ in-memory Sync server, but have not been exercised against a large real account.
 - CRX3 signing, extension-id derivation, self-hosted `update.xml`
 - Policy files for Linux, Windows and macOS that also disable Chrome's own password manager
 
+**Updates**
+- A self-update engine, on by default. Chrome does not auto-update a self-hosted build
+  unless it was installed by policy, and no extension can install a new version of itself,
+  so FireSync checks a release manifest on a timer, badges the toolbar icon and offers a
+  download link
+- Configurable to automatic, manual or off, with a repointable manifest URL for forks and
+  self-hosting. "Off" makes no requests at all and the Check now button will not override it
+- Dismissals are per-version, and a release marked critical is never suppressed
+
+**Releases and distribution**
+- GitHub Releases carrying a signed `.crx` and an unpacked `.zip`
+- A single-file GitHub Pages site with install instructions, the download links and the
+  `update.json` / `update.xml` feeds, all served next to the binaries they describe
+- A release pipeline on every push to main: test, build, sign, tag, publish, redeploy
+- Extension id pinned via a manifest key, so unpacked and signed builds share one identity
+
 **Project**
-- 328 tests: RFC and specification vectors, independently written encoders, a fake Sync
+- 355 tests: RFC and specification vectors, independently written encoders, a fake Sync
   server, and a synthetic Firefox profile
-- Ten documents covering architecture, protocol, security, autofill, the bridge,
+- Eleven documents covering install, architecture, protocol, security, autofill, the bridge,
   distribution, development, testing, roadmap and FAQ
+- `NOTICE.md`: independence, trademarks, and a standing commitment to respond to and comply
+  with any concern from Mozilla or Google
 
 ### Known issues
 
