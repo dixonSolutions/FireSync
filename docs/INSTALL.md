@@ -1,14 +1,19 @@
 # Installing FireSync
 
-Downloads: <https://dixonsolutions.github.io/FireSync/> ·
-Releases: <https://github.com/dixonSolutions/FireSync/releases>
+**No command line, no build tools.** Download one file, drag it in, done in about a minute.
 
-Every release publishes two files:
+| Your browser | Download | Then |
+|---|---|---|
+| Chromium, Brave, Vivaldi, ungoogled-chromium | the **`.crx`** | Drag it onto `chrome://extensions` |
+| Google Chrome, Edge, anything else | the **`.zip`** | Unzip, then **Load unpacked** |
 
-| File | Use it for |
-|---|---|
-| `firesync-<version>.zip` | Load unpacked. Works everywhere, including stock Chrome. |
-| `firesync-<version>.crx` | Signed package. Drag-installable on Chromium; policy-installable on a managed Chrome. |
+Get both from **<https://dixonsolutions.github.io/FireSync/>** or the
+[latest release](https://github.com/dixonSolutions/FireSync/releases/latest).
+
+Stock Chrome refuses off-store `.crx` files — that is a Chrome rule, not a fault in the
+package — so the `.zip` route is the one that works everywhere.
+
+Step-by-step for each below, then [first run](#first-run).
 
 ---
 

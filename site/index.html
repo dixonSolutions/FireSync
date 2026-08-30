@@ -116,6 +116,45 @@
 
 <section>
   <div class="wrap">
+    <h2>Install</h2>
+    <p class="note">No command line, no build tools. Download one file and drag it in — about a minute.</p>
+
+    <h3>Chromium · Brave · Vivaldi · ungoogled-chromium</h3>
+    <ol>
+      <li>Download the <strong>CRX</strong> above.</li>
+      <li>Open <code>chrome://extensions</code>.</li>
+      <li>Turn on <strong>Developer mode</strong>.</li>
+      <li>Drag the <code>.crx</code> onto the page and confirm.</li>
+    </ol>
+
+    <h3>Google Chrome · Microsoft Edge · anything else</h3>
+    <p class="note">Stock Chrome refuses off-store <code>.crx</code> files, so use the zip — this route works everywhere.</p>
+    <ol>
+      <li>Download the <strong>ZIP</strong> above and unzip it.</li>
+      <li><code>chrome://extensions</code> → <strong>Developer mode</strong> → <strong>Load unpacked</strong>.</li>
+      <li>Select the unzipped folder.</li>
+    </ol>
+
+    <h3>Then, once</h3>
+    <ol>
+      <li><strong>Choose a FireSync passphrase.</strong> It encrypts the vault on this device. It is not your Mozilla password, and there is no recovery.</li>
+      <li><strong>Sign in to your Mozilla account.</strong> Two-factor codes and confirmation emails are handled.</li>
+      <li><strong>Turn off Chrome&rsquo;s own password manager</strong> at <code>chrome://settings/autofill</code> &mdash; otherwise every login form gives you two save prompts.</li>
+    </ol>
+    <p class="note">That is it. FireSync starts syncing immediately.</p>
+
+    <h3>Managed Chrome, with auto-updates</h3>
+    <pre><code>sudo packaging/linux/install-policy.sh &lt;extension-id&gt; \
+  https://dixonsolutions.github.io/FireSync/update.xml</code></pre>
+    <p class="note">
+      Optional, and only for fleets. Requires AD / Entra ID / MDM, or a free Chrome Enterprise
+      Core enrolment. Windows and macOS scripts are in <code>packaging/</code>.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
     <h2>What it does</h2>
     <p class="note">
       Firefox Sync is an open, documented, end-to-end encrypted protocol. FireSync speaks it
@@ -156,42 +195,7 @@
   </div>
 </section>
 
-<section>
-  <div class="wrap">
-    <h2>Install</h2>
 
-    <h3>Chromium, Brave, Vivaldi, ungoogled-chromium</h3>
-    <ol>
-      <li>Download the <strong>CRX</strong> above.</li>
-      <li>Open <code>chrome://extensions</code>.</li>
-      <li>Turn on <strong>Developer mode</strong>.</li>
-      <li>Drag the <code>.crx</code> onto the page and confirm.</li>
-    </ol>
-
-    <h3>Google Chrome, or any browser — the always-works route</h3>
-    <ol>
-      <li>Download the <strong>ZIP</strong> above and unzip it.</li>
-      <li><code>chrome://extensions</code> → <strong>Developer mode</strong> → <strong>Load unpacked</strong>.</li>
-      <li>Select the unzipped folder.</li>
-    </ol>
-
-    <h3>Managed Chrome, with auto-updates</h3>
-    <pre><code>sudo packaging/linux/install-policy.sh &lt;extension-id&gt; \
-  https://dixonsolutions.github.io/FireSync/update.xml</code></pre>
-    <p class="note">
-      Requires AD / Entra ID / MDM, or a free Chrome Enterprise Core enrolment. Windows and
-      macOS scripts are in <code>packaging/</code>.
-    </p>
-
-    <h3>Then</h3>
-    <ol>
-      <li>Set a FireSync passphrase — it encrypts the vault on this device, and there is no recovery.</li>
-      <li>Connect your Mozilla account. 2FA and confirmation codes are handled.</li>
-      <li><strong>Turn off Chrome's own password manager</strong> at <code>chrome://settings/autofill</code>,
-          or you get two prompts on every login form.</li>
-    </ol>
-  </div>
-</section>
 
 <section>
   <div class="wrap">

@@ -16,6 +16,41 @@
   <a href="NOTICE.md">Notice</a>
 </p>
 
+## Install
+
+No command line, no build tools. Download one file and drag it in.
+
+### Chromium · Brave · Vivaldi · ungoogled-chromium
+
+1. Download **`firesync-<version>.crx`** from the [latest release](https://github.com/dixonSolutions/FireSync/releases/latest).
+2. Open `chrome://extensions`.
+3. Turn on **Developer mode** (top right).
+4. Drag the downloaded file onto that page and confirm.
+
+### Google Chrome · Microsoft Edge · anything else
+
+Stock Chrome refuses off-store `.crx` files, so use the zip — this route works everywhere.
+
+1. Download **`firesync-<version>.zip`** from the [latest release](https://github.com/dixonSolutions/FireSync/releases/latest) and unzip it.
+2. Open `chrome://extensions`.
+3. Turn on **Developer mode** (top right).
+4. Click **Load unpacked** and pick the unzipped folder.
+
+### Then, once
+
+1. **Choose a FireSync passphrase.** It encrypts the vault on this device. It is not your
+   Mozilla password, and there is no recovery.
+2. **Sign in to your Mozilla account.** Two-factor codes and confirmation emails are
+   handled.
+3. **Turn off Chrome's own password manager** at `chrome://settings/autofill` — otherwise
+   every login form gives you two save prompts.
+
+That's it. FireSync starts syncing immediately, and keeps itself up to date by telling you
+when a new version is out.
+
+Longer version, including managed/enterprise installs and how to uninstall:
+**[docs/INSTALL.md](docs/INSTALL.md)**.
+
 ## Supported browsers
 
 | Browser | | How to install |
@@ -62,46 +97,6 @@ save/update bar — exactly as Bitwarden and 1Password do, and for exactly the s
 The practical consequence: turn Chrome's built-in manager off at
 `chrome://settings/autofill`, or deploy the policy files in `packaging/`, which do it for
 you. Leave it on and every login form gives you two prompts and two dropdowns.
-
-## Quick start
-
-**Just want to use it?** Grab a build from
-<https://dixonsolutions.github.io/FireSync/> — the `.crx` for Chromium, the `.zip` for
-everywhere including stock Chrome. Step-by-step: [docs/INSTALL.md](docs/INSTALL.md).
-
-**Building from source:**
-
-```bash
-git clone <this repo> firesync && cd firesync
-npm install
-npm run assets      # rasterise the icons with headless Chrome
-npm run build       # bundle into dist/
-npm test            # 355 unit + integration tests, no network needed
-```
-
-Then load it — **Chromium (or Brave, Vivaldi, ungoogled-chromium) is the smoothest path**:
-
-1. Open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked**, and
-   select the `dist/` directory. On Chromium you can also just drop the CRX onto that page;
-   on stock Chrome you cannot — see [the matrix](docs/DISTRIBUTION.md#the-matrix).
-2. FireSync opens its setup page. Choose a passphrase for the local vault, then connect
-   your Mozilla account.
-3. Turn off Chrome's own password manager at `chrome://settings/autofill` so the two do not
-   both offer to save.
-
-To produce a signed, self-hosted build instead:
-
-```bash
-npm run release     # typecheck + test + build + sign
-# → build/firesync-0.1.0.crx, build/update.xml, build/extension-id.txt
-```
-
-Optionally install the local bridge, which adds Firefox profile import and OS-keychain
-storage for the vault key:
-
-```bash
-cd bridge && ./install.sh <extension-id>   # id from chrome://extensions
-```
 
 ## How it fits together
 
@@ -174,6 +169,30 @@ badges the toolbar icon, and offers a download link. **On by default**, configur
 Settings → Updates to manual or off, with the manifest URL repointable for forks and
 self-hosting. "Off" is absolute — it makes no requests at all, and the Check now button will
 not override it.
+
+## Build from source
+
+For contributors. If you only want to *use* FireSync, see [Install](#install) above —
+nothing here is required.
+
+```bash
+git clone https://github.com/dixonSolutions/FireSync && cd FireSync
+npm install
+npm run assets      # rasterise the icons with headless Chrome
+npm run build       # bundle into dist/
+npm test            # 355 unit + integration tests, no network needed
+```
+
+Then load `dist/` unpacked at `chrome://extensions`. `npm run release` additionally signs a
+CRX — note that a build signed with your own key has a different extension id from the
+published one. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+Optionally install the local bridge, which adds Firefox profile import and OS-keychain
+storage for the vault key:
+
+```bash
+cd bridge && ./install.sh <extension-id>   # id from chrome://extensions
+```
 
 ## Licence and affiliation
 
