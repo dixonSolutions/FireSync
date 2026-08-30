@@ -61,30 +61,50 @@
 
       <section class="card" id="step-account" hidden>
         <div class="step"><span class="num">2</span><h2>Connect your Mozilla account</h2></div>
-        <form id="account-form">
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" autocomplete="username" />
-          </div>
-          <div class="field">
-            <label for="password">Mozilla account password</label>
-            <input type="password" id="password" autocomplete="current-password" />
-          </div>
-          <button class="primary" type="submit">Connect</button>
-          <div class="error" id="account-error"></div>
-        </form>
 
-        <div id="second-factor" hidden style="margin-top:14px">
-          <hr />
-          <div class="field">
-            <label for="code" id="code-label">Verification code</label>
-            <input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" />
+        <p class="muted" style="font-size:13px;margin-top:0">
+          You sign in on Mozilla's own page. FireSync never sees your password.
+        </p>
+        <button class="primary" id="hosted-signin" style="width:100%;padding:11px">
+          Sign in at accounts.firefox.com
+        </button>
+        <div class="error" id="hosted-error"></div>
+
+        <details style="margin-top:14px">
+          <summary class="muted" style="font-size:12px;cursor:pointer">
+            Trouble with that? Use your password instead
+          </summary>
+          <p class="note" style="margin:10px 0">
+            This older route asks for your Mozilla password so FireSync can derive an
+            authentication value locally. The password is never sent to Mozilla in the clear
+            and never stored, but FireSync does briefly handle it — which is exactly what the
+            button above avoids. Prefer the button.
+          </p>
+          <form id="account-form">
+            <div class="field">
+              <label for="email">Email</label>
+              <input type="email" id="email" autocomplete="username" />
+            </div>
+            <div class="field">
+              <label for="password">Mozilla account password</label>
+              <input type="password" id="password" autocomplete="current-password" />
+            </div>
+            <button class="primary" type="submit">Connect with password</button>
+            <div class="error" id="account-error"></div>
+          </form>
+
+          <div id="second-factor" hidden style="margin-top:14px">
+            <hr />
+            <div class="field">
+              <label for="code" id="code-label">Verification code</label>
+              <input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" />
+            </div>
+            <div class="row">
+              <button class="primary" id="submit-code">Confirm</button>
+              <button id="resend" hidden>Resend email</button>
+            </div>
           </div>
-          <div class="row">
-            <button class="primary" id="submit-code">Confirm</button>
-            <button id="resend" hidden>Resend email</button>
-          </div>
-        </div>
+        </details>
 
         <p class="note" style="margin-top:16px">
           FireSync uses your password only to obtain a Sync token from Mozilla, then

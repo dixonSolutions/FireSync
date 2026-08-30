@@ -254,28 +254,39 @@ never existed on either device — the worst failure a password manager can have
 
 ## OAuth client identity
 
-The unresolved external dependency, stated plainly.
+The project's remaining external dependency, stated openly.
 
 Firefox Accounts has **no self-serve OAuth client registration**. To obtain an access token
-with the `oldsync` scope, a client must present a registered `client_id`. Every third-party
-Sync client therefore reuses a Mozilla **public** client id — public by construction, since
-it ships inside every Firefox binary.
+with the `oldsync` scope, a client must present a registered `client_id`. FireSync therefore
+reuses Mozilla **public** client identifiers — public by construction, since they ship inside
+released binaries — as every third-party Sync client does.
 
-FireSync does the same, and treats it as configuration rather than a constant
-(`DEFAULT_OAUTH_CLIENT_ID` in `src/fxa/client.ts`) so it can be changed without a rebuild.
+It uses two, for a reason that is not obvious:
+
+| Flow | `client_id` | Registered redirect | Why |
+|---|---|---|---|
+| Hosted sign-in (default) | `3c49430b43dfba77` | `https://accounts.firefox.com/oauth/success/3c49430b43dfba77` | A plain https redirect a tab navigates to, which `chrome.tabs.onUpdated` can observe |
+| Password fallback | `5882386c6d801776` | `urn:ietf:wg:oauth:2.0:oob:oauth-redirect-webchannel` | Firefox Desktop's client. Its redirect is a WebChannel an extension cannot intercept, so it is usable only for the `fxa-credentials` grant |
+
+That distinction is the whole reason the hosted flow was initially thought impossible. It is
+not: a client whose redirect is an ordinary URL makes it work, and FxA accepts such a client
+with the `oldsync` scope, PKCE, and a `keys_jwk` scoped-key request. Verified against the
+live service — the authorization endpoint returns 200 and renders the sign-in page.
+
+Query any client's registration yourself:
+
+```bash
+curl https://oauth.accounts.firefox.com/v1/client/3c49430b43dfba77
+```
 
 What this means in practice:
 
-- It works today, and it is what `ffsclient` and similar tools do.
-- It is **unsanctioned**. Mozilla may gate or revoke it at any time, and would be within
-  their rights.
-- It also blocks the better sign-in flow: `chrome.identity.launchWebAuthFlow` needs a
-  redirect URI registered against the client id, and we cannot register one against
-  somebody else's. The workaround shipped in `src/fxa/oauth.ts` is to open the authorize
-  URL in a tab and watch `chrome.tabs.onUpdated` for the client's own registered redirect.
-- **The right fix is to ask Mozilla for a client registration**, with a redirect URI of
-  `https://<extension-id>.chromiumapp.org/`. That would unlock Flow B, at which point
-  FireSync never sees the password or `kB` at all.
-
-Until then, this is the project's largest single risk and the first thing to check if
-sign-in starts failing across the board.
+- It works today, and reusing a public client id is what the third-party ecosystem does.
+- It is **unsanctioned**. Mozilla may gate or revoke either identifier at any time, and would
+  be within their rights. Both are configuration values, not constants, so they can be
+  changed without a rebuild.
+- **The right fix is a client registration of FireSync's own.** If Mozilla would grant one,
+  it would be used immediately and this section would shrink to a sentence. See
+  [../NOTICE.md](../NOTICE.md).
+- The [local bridge](BRIDGE.md) imports from a Firefox profile on disk and depends on none
+  of this, which is the project's insurance against that risk.

@@ -48,6 +48,32 @@ const text = (id: string, value: string): void => {
 );
 
 // ------------------------------------------------------------------ step 2
+
+/**
+ * The preferred route: Mozilla's own sign-in page in a new tab. The background
+ * watches that tab for the OAuth redirect, so this just waits for the answer.
+ */
+document.getElementById('hosted-signin')?.addEventListener('click', async (event) => {
+  const button = event.currentTarget as HTMLButtonElement;
+  button.disabled = true;
+  button.textContent = 'Waiting for Mozilla sign-in…';
+  text('hosted-error', '');
+  try {
+    const result = await sendMessage({ type: 'account/signInHosted' });
+    handleStep(result.step);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    text(
+      'hosted-error',
+      message === 'sign-in was cancelled'
+        ? 'Sign-in tab was closed. Press the button to try again.'
+        : message,
+    );
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Sign in at accounts.firefox.com';
+  }
+});
 function handleStep(step: string): void {
   switch (step) {
     case 'complete':

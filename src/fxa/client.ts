@@ -35,6 +35,7 @@ import type {
 
 export const DEFAULT_AUTH_SERVER = 'https://api.accounts.firefox.com/v1';
 export const DEFAULT_CONTENT_SERVER = 'https://accounts.firefox.com';
+export const DEFAULT_PROFILE_SERVER = 'https://profile.accounts.firefox.com/v1';
 
 /**
  * Firefox Accounts has no self-serve OAuth client registration. Third-party
@@ -45,11 +46,32 @@ export const DEFAULT_CONTENT_SERVER = 'https://accounts.firefox.com';
  */
 export const DEFAULT_OAUTH_CLIENT_ID = '5882386c6d801776';
 
+/**
+ * The client used for the hosted sign-in flow, where the user authenticates on
+ * Mozilla's own page and FireSync never sees the password.
+ *
+ * It has to be a *different* client from the one above: Firefox Desktop's
+ * registered redirect is a WebChannel
+ * (`urn:ietf:wg:oauth:2.0:oob:oauth-redirect-webchannel`), which an extension
+ * cannot intercept. This client has a plain https redirect that a tab
+ * navigates to, which `chrome.tabs.onUpdated` can see.
+ *
+ * Verified against the live service: FxA accepts this client with the oldsync
+ * scope, PKCE, and a `keys_jwk` scoped-key request.
+ */
+export const DEFAULT_HOSTED_CLIENT_ID = '3c49430b43dfba77';
+
+/** Where that client's authorization redirects land. */
+export function hostedRedirectUri(clientId: string, contentServerUrl = DEFAULT_CONTENT_SERVER): string {
+  return `${contentServerUrl.replace(/\/+$/, '')}/oauth/success/${clientId}`;
+}
+
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 export interface FxAClientOptions {
   authServerUrl?: string;
   contentServerUrl?: string;
+  profileServerUrl?: string;
   oauthClientId?: string;
   fetchImpl?: FetchLike;
   userAgent?: string;
@@ -68,6 +90,7 @@ export interface SignInOptions {
 export class FxAClient {
   readonly authServerUrl: string;
   readonly contentServerUrl: string;
+  readonly profileServerUrl: string;
   readonly oauthClientId: string;
   private readonly fetchImpl: FetchLike;
   private readonly userAgent: string | undefined;
@@ -77,6 +100,10 @@ export class FxAClient {
   constructor(options: FxAClientOptions = {}) {
     this.authServerUrl = (options.authServerUrl ?? DEFAULT_AUTH_SERVER).replace(/\/+$/, '');
     this.contentServerUrl = (options.contentServerUrl ?? DEFAULT_CONTENT_SERVER).replace(
+      /\/+$/,
+      '',
+    );
+    this.profileServerUrl = (options.profileServerUrl ?? DEFAULT_PROFILE_SERVER).replace(
       /\/+$/,
       '',
     );
@@ -317,6 +344,33 @@ export class FxAClient {
       body: { client_id: this.oauthClientId, scope },
       hawk,
     });
+  }
+
+  /**
+   * `GET /profile` on the profile server, with an OAuth bearer token.
+   *
+   * The hosted sign-in flow never touches the auth server's session endpoints,
+   * so this is the only way it learns who just signed in.
+   */
+  async profile(accessToken: string): Promise<{ uid: string; email?: string; displayName?: string }> {
+    const url = `${this.profileServerUrl}/profile`;
+    const headers: Record<string, string> = {
+      authorization: `Bearer ${accessToken}`,
+      accept: 'application/json',
+    };
+    if (this.userAgent) headers['user-agent'] = this.userAgent;
+
+    let response: Response;
+    try {
+      response = await this.fetchImpl(url, { method: 'GET', headers });
+    } catch (cause) {
+      throw new FxANetworkError(`could not reach ${url}`, cause);
+    }
+    const text = await response.text();
+    if (!response.ok) {
+      throw new FxAError(response.status, (safeJsonParse(text) ?? {}) as FxAErrorBody);
+    }
+    return safeJsonParse(text) as { uid: string; email?: string; displayName?: string };
   }
 
   // -------------------------------------------------------------------- device

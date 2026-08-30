@@ -14,12 +14,20 @@ That is a one-time copy that goes stale the moment you save a password anywhere.
 keeps both browsers in step in both directions. If you do want a one-time copy, the
 [bridge](BRIDGE.md) does it locally with no account involved.
 
-**Why does it need my Mozilla password?**
-For the current sign-in flow, to derive `authPW` locally — the password itself is never
-sent, never stored, and discarded immediately. The better flow, where you authenticate on
-Mozilla's own page and FireSync never sees the password at all, is written and tested but
-blocked on Mozilla registering an OAuth client. See
-[PROTOCOL.md](PROTOCOL.md#oauth-client-identity).
+**Does it need my Mozilla password?**
+No. The default sign-in opens `accounts.firefox.com` in a tab and you authenticate there —
+FireSync never sees the password, never holds a session token, and never derives your master
+key. Mozilla hands back a refresh token scoped to Sync data and your Sync key, already
+encrypted to a key only this extension holds.
+
+There is a password fallback behind a disclosure in setup, for when that flow is
+unavailable. It derives an authentication value locally and discards the password
+immediately, but FireSync does briefly handle it — which is exactly what the default avoids.
+
+**Why does it ask for a passphrase, then?**
+That is a *FireSync* passphrase, not your Mozilla one, and it is a different job: it
+encrypts the vault on this device so the file on disk is useless to anyone who copies it.
+There is no recovery, by design.
 
 **Why a separate FireSync passphrase?**
 Because the alternative is worse. If the vault key came from your Mozilla password, changing

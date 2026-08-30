@@ -4,6 +4,35 @@ All notable changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-08-30
+
+### Added
+
+- **Hosted sign-in, and it is now the default.** You authenticate on
+  `accounts.firefox.com` itself. FireSync never sees your password, never holds a session
+  token, and never derives your master key `kB`; Mozilla returns the 64-byte Sync key
+  already encrypted to an ephemeral P-256 key only this extension holds. Two-factor,
+  recovery keys, passkeys and unblock codes all become Mozilla's problem rather than ours.
+- Profile-server lookup, so the hosted flow can learn which account signed in without
+  touching any session endpoint.
+- `install.sh --browser` and `--list`, for installing to one browser and for a dry run that
+  needs no root.
+
+### Changed
+
+- The password flow moves behind a disclosure in setup, labelled as the fallback it is.
+- Docs across the board: the hosted flow was previously documented as "blocked on a client
+  registration". That was wrong. Firefox Desktop's OAuth client registers a WebChannel
+  redirect an extension cannot intercept, but other public Mozilla clients register ordinary
+  https redirects, which `chrome.tabs.onUpdated` can observe. Verified against the live
+  service before shipping.
+
+### Fixed
+
+- The installer no longer writes a policy for a browser it cannot install into. On a machine
+  with an unmanaged Google Chrome it would have disabled Chrome's password manager while
+  being unable to install FireSync there.
+
 ## [0.1.0] — 2026-08-30
 
 First release. Alpha: the protocol layers are complete and covered end to end against an

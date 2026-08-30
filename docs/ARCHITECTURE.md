@@ -46,17 +46,18 @@ suite.
 
 Two ways in. FireSync implements both; which one is usable depends on Mozilla, not on us.
 
-**Flow A, `fxa-credentials`** (what ships today). The user's password is stretched locally
+**Flow A, `fxa-credentials`** (the fallback). The user's password is stretched locally
 into `authPW`; the raw password never leaves the extension and is never stored. The
 resulting session token is used for exactly three calls — fetch the account keys, read the
 scoped-key rotation timestamp, mint OAuth tokens — and is then destroyed, because a session
 token is full account control while an `oldsync` refresh token is not.
 
-**Flow B, scoped-key OAuth** (preferred, blocked on client registration). The user
-authenticates on `accounts.firefox.com` itself and FireSync never sees the password or the
-master key `kB` — Mozilla returns the 64-byte `oldsync` key already encrypted to an
-ephemeral P-256 key that only this extension holds. `src/fxa/oauth.ts` and `src/fxa/jwe.ts`
-are complete and tested; what is missing is a `client_id` whose redirect URI we control.
+**Flow B, hosted sign-in with scoped keys** (the default). The user authenticates on
+`accounts.firefox.com` itself and FireSync never sees the password, never holds a session
+token, and never derives `kB` — Mozilla returns the 64-byte `oldsync` key already encrypted
+to an ephemeral P-256 key that only this extension holds. The extension opens the
+authorization URL in a tab and watches `chrome.tabs.onUpdated` for the OAuth client's
+registered redirect. `src/fxa/hosted.ts`, `oauth.ts` and `jwe.ts`.
 
 Either way the layer's output is the same four values, which are all the rest of the system
 needs: `refreshToken`, `kSync`, `kid`, `uid`.

@@ -4,7 +4,7 @@
 
 - The Firefox Accounts key hierarchy, verified against published vectors
 - Sign-in including TOTP, emailed confirmation codes, and sign-in unblock
-- Scoped-key OAuth and its JWE — complete and tested, waiting only on a client registration
+- Hosted sign-in with scoped keys — the default, so the password is never handled
 - Token server, Hawk signing, clock-skew correction
 - Sync 1.5 storage: pagination, batching, preconditions, backoff
 - Record crypto and the collection key ring
@@ -21,9 +21,10 @@
 
 ## Next
 
-**Get a real OAuth client registration from Mozilla.** The single highest-value item. It
-removes the project's largest external risk and unlocks the sign-in flow where FireSync
-never sees the password or `kB`. Everything else on this list is smaller.
+**Get a real OAuth client registration from Mozilla.** Still the highest-value item: it
+would replace the borrowed identifiers and remove the project's largest external risk. It no
+longer blocks anything functionally — hosted sign-in ships and works — but the dependency
+remains.
 
 **Prove the credit-card path, or drop it.** Read-only and off by default until someone
 verifies the payload on a real account. See [TESTING.md](TESTING.md#credit-cards).

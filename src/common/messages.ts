@@ -52,6 +52,7 @@ export type Message =
   | { type: 'vault/lock' }
   | { type: 'vault/changePassphrase'; current: string; next: string }
   | { type: 'vault/reset' }
+  | { type: 'account/signInHosted'; email?: string }
   | { type: 'account/connect'; email: string; password: string; unblockCode?: string }
   | { type: 'account/submitTotp'; code: string }
   | { type: 'account/submitEmailCode'; code: string }
@@ -88,6 +89,7 @@ export interface ResponseMap {
   'vault/lock': VaultStatus;
   'vault/changePassphrase': VaultStatus;
   'vault/reset': VaultStatus;
+  'account/signInHosted': { step: string; email?: string };
   'account/connect': { step: string; email?: string };
   'account/submitTotp': { step: string };
   'account/submitEmailCode': { step: string };

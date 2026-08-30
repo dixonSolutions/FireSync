@@ -80,8 +80,10 @@ directly from a Chromium extension, so the logins you save in Firefox appear in 
 the logins you save in Chrome appear back in Firefox — with no bridge service, no export
 file, and no third party holding your vault.
 
-- **Mozilla account sign-in**, including TOTP, emailed confirmation codes, and Mozilla's
-  new-device sign-in unblock flow.
+- **Sign in on Mozilla's own page.** FireSync never sees your password, never holds a
+  session token, and never derives your master key — Mozilla returns the Sync key already
+  encrypted to a key only this extension holds. A password fallback exists behind a
+  disclosure, for when that flow is unavailable.
 - **Two-way sync** of the `passwords` and `addresses` collections over Sync 1.5, with
   batched uploads, `X-If-Unmodified-Since` preconditions, and last-writer-wins conflict
   resolution keyed on `timePasswordChanged` — the same rule Firefox itself uses.
@@ -157,10 +159,10 @@ Known gaps, stated plainly:
 - **Credit cards are read-only and off by default.** Firefox also protects card numbers
   with an OS keystore, and the payload schema has changed more than once. FireSync will
   never write to that collection until a real account has been observed round-tripping.
-- **The OAuth client id is borrowed.** Mozilla has no self-serve registration for
-  third-party Sync clients, so FireSync reuses a public Mozilla client id the way every
-  other third-party client does. It works; it is unsanctioned; it is configuration rather
-  than a constant so it can be changed. The [local bridge](docs/BRIDGE.md) exists partly as
+- **The OAuth client ids are borrowed.** Mozilla has no self-serve registration for
+  third-party Sync clients, so FireSync reuses public Mozilla client ids the way every other
+  third-party client does. It works; it is unsanctioned; they are configuration rather than
+  constants so they can be changed. The [local bridge](docs/BRIDGE.md) exists partly as
   insurance: importing from a Firefox profile on disk depends on none of this. See
   [docs/PROTOCOL.md](docs/PROTOCOL.md#oauth-client-identity).
 - **Bookmarks, history, tabs and forms are not synced.** Chrome has no comparable surface

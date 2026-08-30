@@ -52,8 +52,11 @@ object to.
 
 Firefox Accounts offers no self-serve OAuth client registration. To obtain an access token
 with the `oldsync` scope, a client must present a registered `client_id`. FireSync therefore
-reuses a Mozilla **public** client identifier — public by construction, since it ships inside
-every Firefox binary — as every third-party Sync client does.
+reuses Mozilla **public** client identifiers — public by construction, since they ship inside
+released binaries — as every third-party Sync client does. It uses two: one for the default
+hosted sign-in, whose registered redirect is an ordinary https URL, and one for the password
+fallback. Both are listed openly in
+[docs/PROTOCOL.md](docs/PROTOCOL.md#oauth-client-identity).
 
 FireSync treats this as a configuration value, not a constant, precisely so it can be
 changed. **If Mozilla would prefer this project use its own registered client, we would very
