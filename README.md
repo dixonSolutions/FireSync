@@ -1,22 +1,26 @@
 <p align="center">
-  <img src="assets/banner.png" alt="FireSync — Firefox passwords and autofill, natively in Chrome" width="100%">
-</p>
-
-<h1 align="center">FireSync</h1>
-
-<p align="center">
-  <strong>Sign in to your Mozilla account and use your Firefox passwords, addresses and
-  per-site preferences in Chrome or Chromium.</strong><br>
-  Manifest V3 · end-to-end encrypted with your own Sync key · no FireSync server, ever.
+  <img src="assets/banner.png" alt="FireSync — take your Mozilla vault to any Chromium browser" width="100%">
 </p>
 
 <p align="center">
-  <a href="#status"><img alt="status" src="https://img.shields.io/badge/status-alpha-FF6B35"></a>
-  <a href="docs/TESTING.md"><img alt="tests" src="https://img.shields.io/badge/tests-328%20passing-9B5DE5"></a>
-  <a href="LICENSE"><img alt="licence" src="https://img.shields.io/badge/licence-MIT-FF3D7F"></a>
+  <strong>Take your Mozilla vault — passwords and autofill — to any Chromium browser.</strong><br>
+  Sign in with your Mozilla account, keep everything in step with Firefox, and hold the keys
+  yourself. End-to-end encrypted with your own Sync key. There is no FireSync server.
 </p>
 
----
+## Supported browsers
+
+| Browser | | How to install |
+|---|---|---|
+| **Chromium** | works | Load unpacked, drop in the CRX, `--load-extension`, or policy |
+| **Brave · Vivaldi · ungoogled-chromium** | works | Same as Chromium |
+| **Microsoft Edge** | works | Policy with self-hosting, or load unpacked |
+| **Google Chrome** | conditional | Developer mode, or enterprise policy on a **managed** browser |
+
+Stock, unmanaged Chrome refuses self-hosted extensions — it requires a Web Store-issued
+publisher proof inside the CRX. That is a Chrome policy, not a packaging mistake, and
+Chromium enforces none of it. Details and every workaround:
+[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
 
 ## What this is
 
@@ -39,26 +43,17 @@ file, and no third party holding your vault.
 - **Off-store distribution**: a signed CRX, a self-hosted update manifest, and ready-made
   policy files for Linux, Windows and macOS.
 
-## The two hard limits
+## The limit worth knowing up front
 
-Two things about this problem are not negotiable, and knowing them up front will save you
-an afternoon:
+**You cannot inject into Chrome's own password UI.** `chrome.passwordsPrivate` and
+`chrome.autofillPrivate` are restricted to component extensions shipped inside the browser.
+There is no supported way to add an entry to the native save-password bubble or the autofill
+dropdown. FireSync therefore draws its own — an in-field button, a credential list, and a
+save/update bar — exactly as Bitwarden and 1Password do, and for exactly the same reason.
 
-**1. You cannot inject into Chrome's own password UI.** `chrome.passwordsPrivate` and
-`chrome.autofillPrivate` are restricted to component extensions shipped inside the
-browser. There is no supported way to add an entry to Chrome's save-password bubble or its
-autofill dropdown. FireSync therefore draws its own — an in-field button, a credential
-list, and a save/update bar — exactly as Bitwarden and 1Password do. To avoid two prompts
-appearing at once, FireSync's policy files also turn Chrome's built-in manager off.
-
-**2. Stock, unmanaged Google Chrome cannot install a self-hosted extension.** Chrome
-requires a Web Store-issued *publisher proof* inside the CRX and rejects anything else with
-`CRX_REQUIRED_PROOF_MISSING`; `--load-extension` was removed from branded builds in 137. The
-only exemptions are enterprise policy on a **managed** browser and developer mode.
-**Chromium and its derivatives are the primary target** — they enforce none of this, and
-load unpacked builds, CRX drops, `--load-extension` and policy alike. Chrome remains a
-supported option under those conditions. Full matrix in
-[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
+The practical consequence: turn Chrome's built-in manager off at
+`chrome://settings/autofill`, or deploy the policy files in `packaging/`, which do it for
+you. Leave it on and every login form gives you two prompts and two dropdowns.
 
 ## Quick start
 

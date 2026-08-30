@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="FireSync">
-  <title>FireSync — Firefox passwords and autofill, natively in Chrome</title>
+  <title>FireSync — take your Mozilla vault to any Chromium browser</title>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#141419"/>
@@ -56,23 +56,30 @@
 
   <g font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
     <text x="330" y="288" fill="url(#word)" font-size="104" font-weight="700" letter-spacing="-3">FireSync</text>
-    <text x="334" y="342" fill="#C9C6D6" font-size="27" font-weight="500">Firefox passwords and autofill, natively in Chrome.</text>
-    <text x="334" y="382" fill="#8E8AA0" font-size="21" font-weight="400">Mozilla account sign-in · Sync 1.5 · end-to-end encrypted · no FireSync server</text>
+    <text x="334" y="342" fill="#C9C6D6" font-size="27" font-weight="500">Take your Mozilla vault to any Chromium browser.</text>
+    <text x="334" y="382" fill="#8E8AA0" font-size="21" font-weight="400">Passwords · autofill · per-site settings — end-to-end encrypted, no server</text>
 
-    <g font-size="19" font-weight="600">
+    <g font-size="19" font-weight="600" fill="#C9C6D6">
       <g transform="translate(334 424)">
-        <rect width="214" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
-        <text x="22" y="27" fill="#FFB68C">Manifest V3</text>
+        <rect width="124" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
+        <text x="22" y="27">Chromium</text>
       </g>
-      <g transform="translate(566 424)">
-        <rect width="274" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
-        <text x="22" y="27" fill="#FF9BC2">Off-store distribution</text>
+      <g transform="translate(474 424)">
+        <rect width="104" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
+        <text x="22" y="27">Chrome</text>
       </g>
-      <g transform="translate(858 424)">
-        <rect width="212" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
-        <text x="22" y="27" fill="#CBA6FF">Zero-knowledge</text>
+      <g transform="translate(594 424)">
+        <rect width="94" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
+        <text x="22" y="27">Brave</text>
       </g>
-    </g>
+      <g transform="translate(704 424)">
+        <rect width="84" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
+        <text x="22" y="27">Edge</text>
+      </g>
+      <g transform="translate(804 424)">
+        <rect width="114" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
+        <text x="22" y="27">Vivaldi</text>
+      </g>
   </g>
 
   <rect x="0" y="626" width="1280" height="14" fill="url(#rail)"/>
