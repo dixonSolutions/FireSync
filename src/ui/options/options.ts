@@ -392,3 +392,25 @@ void renderProtection().catch(showError);
 void renderDiagnostics().catch(showError);
 void renderUpdates().catch(showError);
 void renderBridge().catch(showError);
+
+/**
+ * Settings is a full tab, so it tends to be open across a sign-in rather than
+ * being reopened after one. Rendering once on load meant a tab opened before
+ * connecting kept saying "Not connected" underneath a Disconnect button for the
+ * rest of its life, while the popup showed the account. The popup has always
+ * refreshed on these; this page simply never listened.
+ */
+chrome.runtime.onMessage.addListener((message: { type?: string } | undefined) => {
+  switch (message?.type) {
+    case 'state/signedin':
+    case 'state/synced':
+    case 'state/locked':
+    case 'state/unlocked':
+      void render().catch(showError);
+      void renderProtection().catch(showError);
+      void renderDiagnostics().catch(showError);
+      break;
+    default:
+      break;
+  }
+});

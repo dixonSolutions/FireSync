@@ -124,6 +124,50 @@ describe('VaultStore', () => {
     expect(await vault.isUnlocked()).toBe(false);
   });
 
+  /**
+   * A sync error recorded while there was no account is not evidence about the
+   * account that just connected. Leaving it in place put "no Mozilla account is
+   * connected" in the popup directly under the connected account's address.
+   */
+  it('clears a stale sync error when an account connects', async () => {
+    await vault.writeSyncState({
+      ...(await vault.readSyncState()),
+      lastSyncError: 'no Mozilla account is connected',
+    });
+
+    await vault.writeTokens({
+      uid: 'uid',
+      email: 'user@example.org',
+      refreshToken: 'refresh-token-value',
+      kSync: 'a2V5',
+      kid: '1-abc',
+      connectedAt: 1,
+    });
+
+    expect((await vault.readSyncState()).lastSyncError).toBeNull();
+  });
+
+  it('leaves the rest of the sync state alone when an account connects', async () => {
+    await vault.writeSyncState({
+      ...(await vault.readSyncState()),
+      lastSyncAt: 1234,
+      metaGlobalSyncId: 'sync-id',
+      lastSyncError: 'boom',
+    });
+
+    await vault.writeTokens({
+      uid: 'uid',
+      email: 'user@example.org',
+      refreshToken: 'refresh-token-value',
+      kSync: 'a2V5',
+      kid: '1-abc',
+      connectedAt: 1,
+    });
+
+    const state = await vault.readSyncState();
+    expect(state).toMatchObject({ lastSyncAt: 1234, metaGlobalSyncId: 'sync-id', lastSyncError: null });
+  });
+
   it('re-encrypts everything when the passphrase changes', async () => {
     await vault.addPassword({ origin: 'https://a.test', username: 'u', password: 'p' });
     await vault.writeTokens({

@@ -287,9 +287,24 @@ export class VaultStore {
     return blob ? unseal<AccountTokens>(key, blob, SLOT.tokens) : null;
   }
 
+  /**
+   * Connecting an account also clears any stored sync error.
+   *
+   * Those errors outlive the state that produced them. A vault with no account
+   * records "no Mozilla account is connected" on every sync attempt, and that
+   * string then sat in the popup *underneath the address of the account that
+   * had just connected* — the UI flatly contradicting itself at the one moment
+   * the user most needs to believe it. An error about the previous state is not
+   * evidence about this one.
+   */
   async writeTokens(tokens: AccountTokens): Promise<void> {
     const key = await this.requireKey();
     await this.local.set(STORAGE_KEY.tokens, await seal(key, tokens, SLOT.tokens));
+
+    const syncState = await this.readSyncState();
+    if (syncState.lastSyncError !== null) {
+      await this.writeSyncState({ ...syncState, lastSyncError: null });
+    }
   }
 
   async clearTokens(): Promise<void> {

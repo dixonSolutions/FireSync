@@ -167,7 +167,12 @@ async function handle(message: Message, sender: chrome.runtime.MessageSender): P
     case 'account/disconnect': {
       const tokens = await vault.readTokens();
       if (tokens) {
-        await getFxaClient().destroyOAuthToken(tokens.refreshToken).catch(() => undefined);
+        await getFxaClient()
+          .destroyOAuthToken(
+            tokens.refreshToken,
+            tokens.clientId ? { clientId: tokens.clientId } : {},
+          )
+          .catch(() => undefined);
       }
       await vault.clearTokens();
       return vaultStatus();
@@ -236,6 +241,13 @@ async function handle(message: Message, sender: chrome.runtime.MessageSender): P
       const pageUrl = senderUrl(sender, message.credential.pageUrl);
       if (!(await prefs.savePromptEnabled(pageUrl))) return { shouldPrompt: false };
       if (!(await vault.isUnlocked())) return { shouldPrompt: false };
+      // An unlocked vault is not a connected account, and in device mode it is
+      // barely a signal at all: `isUnlocked()` returns true for the whole life
+      // of the vault, and `account/signInHosted` calls `vault.ensure()` before
+      // it sends the user to Mozilla. So merely *starting* a sign-in — even one
+      // that then fails — used to leave the user being asked to save logins
+      // into a vault with nowhere to sync them.
+      if (!(await vault.readTokens())) return { shouldPrompt: false };
 
       const existing = await vault.findPasswordsForUrl(pageUrl, {
         strategy: await prefs.matchStrategy(pageUrl),
