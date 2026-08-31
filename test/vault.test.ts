@@ -81,7 +81,7 @@ describe('VaultStore', () => {
   it('starts unlocked after creation and reports its state', async () => {
     expect(await vault.isInitialized()).toBe(true);
     expect(await vault.isUnlocked()).toBe(true);
-    expect(await vault.stats()).toEqual({ passwords: 0, addresses: 0, pendingUploads: 0 });
+    expect(await vault.stats()).toEqual({ passwords: 0, addresses: 0, creditcards: 0, pendingUploads: 0 });
   });
 
   it('refuses to create a second vault over an existing one', async () => {
@@ -129,6 +129,27 @@ describe('VaultStore', () => {
    * account that just connected. Leaving it in place put "no Mozilla account is
    * connected" in the popup directly under the connected account's address.
    */
+  it('counts cards, so a card waiting to upload is not invisible', async () => {
+    const contents = await vault.readContents();
+    contents.creditcards['c1'] = {
+      record: {
+        id: 'c1',
+        version: 3,
+        ccName: 'Ada',
+        ccNumberEnc: 'x',
+        ccExpMonth: 1,
+        ccExpYear: 2030,
+        ccType: 'visa',
+      } as never,
+      dirty: true,
+      deleted: false,
+      modified: 1,
+    } as never;
+    await vault.writeContents(contents);
+
+    expect(await vault.stats()).toMatchObject({ creditcards: 1, pendingUploads: 1 });
+  });
+
   it('clears a stale sync error when an account connects', async () => {
     await vault.writeSyncState({
       ...(await vault.readSyncState()),

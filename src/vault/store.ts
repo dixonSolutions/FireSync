@@ -474,14 +474,23 @@ export class VaultStore {
   }
 
   /** Counts for the popup header. Cheap enough to call on every render. */
-  async stats(): Promise<{ passwords: number; addresses: number; pendingUploads: number }> {
+  async stats(): Promise<{
+    passwords: number;
+    addresses: number;
+    creditcards: number;
+    pendingUploads: number;
+  }> {
     const contents = await this.readContents();
+    // Cards were missing from both the count and the pending tally, so a card
+    // waiting to upload showed as nothing waiting at all.
     const pending = (Object.values(contents.passwords) as LocalRecord<unknown>[])
       .concat(Object.values(contents.addresses) as LocalRecord<unknown>[])
+      .concat(Object.values(contents.creditcards) as LocalRecord<unknown>[])
       .filter((record) => record.dirty).length;
     return {
       passwords: Object.values(contents.passwords).filter((r) => !r.deleted).length,
       addresses: Object.values(contents.addresses).filter((r) => !r.deleted).length,
+      creditcards: Object.values(contents.creditcards).filter((r) => !r.deleted).length,
       pendingUploads: pending,
     };
   }
