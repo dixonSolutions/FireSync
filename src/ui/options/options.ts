@@ -387,7 +387,82 @@ el('bridge-enable').addEventListener('click', async () => {
   await renderBridge();
 });
 
+/**
+ * The connection test, rendered a hop at a time.
+ *
+ * Every stage that failed this session looked identical from the outside — one
+ * sentence naming no stage — so the whole value here is showing which hop broke
+ * rather than that something did.
+ */
+async function runAuthCheck(): Promise<void> {
+  const target = el('auth-check');
+  const button = el<HTMLButtonElement>('run-auth-check');
+  button.disabled = true;
+  target.textContent = 'Testing…';
+  try {
+    const report = await sendMessage({ type: 'account/authCheck' });
+    target.replaceChildren();
+    for (const step of report.steps) {
+      const line = document.createElement('div');
+      line.textContent = `${step.ok ? '\u2713' : '\u2717'} ${step.label} — ${step.detail}`;
+      line.className = step.ok ? '' : 'error';
+      target.append(line);
+    }
+    if (report.steps.length === 0) target.textContent = 'Nothing to test.';
+  } catch (error) {
+    target.textContent = error instanceof Error ? error.message : String(error);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+el('run-auth-check').addEventListener('click', () => void runAuthCheck());
+
+/**
+ * What the account actually holds.
+ *
+ * Counts alone answer "did anything arrive"; the list answers "is it the right
+ * thing". Usernames and origins only — a settings page is the wrong place to
+ * put a password on screen, and the popup already copies one on demand.
+ */
+async function renderAccountData(): Promise<void> {
+  const summary = el('data-summary');
+  const list = el('data-logins');
+  list.replaceChildren();
+
+  const status = await sendMessage({ type: 'vault/status' });
+  if (!status.connected || !status.counts) {
+    summary.textContent = status.initialized
+      ? 'No account connected, so there is nothing to show.'
+      : 'Not set up yet.';
+    return;
+  }
+
+  const counts = status.counts;
+  summary.textContent =
+    `${counts.passwords} logins, ${counts.addresses} addresses, ` +
+    `${counts.creditcards} cards, ${counts.pendingUploads} waiting to upload` +
+    (status.lastSyncAt ? '' : ' — never synced');
+
+  const logins = await sendMessage({ type: 'passwords/list' });
+  for (const login of [...logins].sort((a, b) => a.origin.localeCompare(b.origin)).slice(0, 500)) {
+    const item = document.createElement('li');
+    item.textContent = `${login.username || '(no username)'} — ${login.origin}`;
+    list.append(item);
+  }
+  if (logins.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'muted';
+    empty.textContent = 'No logins yet.';
+    list.append(empty);
+  }
+}
+
+el('refresh-data').addEventListener('click', () => void renderAccountData().catch(showError));
+
+
 void render().catch(showError);
+void renderAccountData().catch(showError);
 void renderProtection().catch(showError);
 void renderDiagnostics().catch(showError);
 void renderUpdates().catch(showError);
@@ -407,6 +482,7 @@ chrome.runtime.onMessage.addListener((message: { type?: string } | undefined) =>
     case 'state/locked':
     case 'state/unlocked':
       void render().catch(showError);
+      void renderAccountData().catch(showError);
       void renderProtection().catch(showError);
       void renderDiagnostics().catch(showError);
       break;

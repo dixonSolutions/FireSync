@@ -16,6 +16,7 @@ import { BridgeClient } from '../bridge/client.ts';
 import { BridgeUnavailableError } from '../bridge/protocol.ts';
 import { ConnectSession } from '../fxa/connect.ts';
 import type { ConnectStep } from '../fxa/connect.ts';
+import { runAuthCheck } from '../sync15/authcheck.ts';
 import { originMatches } from '../match/uri.ts';
 import { newPasswordRecord } from '../sync15/engines/passwords.ts';
 import { passwordAuthorityTime } from '../sync15/engines/passwords.ts';
@@ -124,6 +125,13 @@ async function handle(message: Message, sender: chrome.runtime.MessageSender): P
 
     case 'account/diagnostics':
       return getSignIn().diagnostics();
+
+    case 'account/authCheck':
+      return runAuthCheck({
+        vault,
+        client: getFxaClient(),
+        userAgent: USER_AGENT,
+      });
 
     // The relay content script running on the OAuth success page. Its own URL
     // is authoritative; a page cannot claim to be somewhere it is not.

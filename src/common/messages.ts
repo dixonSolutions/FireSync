@@ -13,6 +13,7 @@ import type { SyncResult } from '../sync15/engine.ts';
 import type { GlobalPreferences, SitePreferences } from '../prefs/types.ts';
 import type { BridgeInfo, FirefoxProfile } from '../bridge/protocol.ts';
 import type { UpdateState } from '../update/types.ts';
+import type { AuthCheckReport } from '../sync15/authcheck.ts';
 import type { SignInProgress, SignInResult } from '../background/signin.ts';
 
 /** A credential summary safe to hand to a content script. */
@@ -31,7 +32,7 @@ export interface VaultStatus {
   protection: 'device' | 'passphrase';
   connected: boolean;
   email: string | null;
-  counts: { passwords: number; addresses: number; pendingUploads: number } | null;
+  counts: { passwords: number; addresses: number; creditcards: number; pendingUploads: number } | null;
   lastSyncAt: number | null;
   lastSyncError: string | null;
 }
@@ -57,6 +58,7 @@ export type Message =
   | { type: 'account/signInHosted'; email?: string }
   | { type: 'account/signInProgress' }
   | { type: 'account/diagnostics' }
+  | { type: 'account/authCheck' }
   | { type: 'signin/redirect'; url: string }
   | { type: 'account/cancelSignIn' }
   | { type: 'account/connect'; email: string; password: string; unblockCode?: string }
@@ -97,6 +99,7 @@ export interface ResponseMap {
   'account/signInHosted': { step: string };
   'account/signInProgress': SignInProgress;
   'account/diagnostics': SignInResult | null;
+  'account/authCheck': AuthCheckReport;
   'signin/redirect': null;
   'account/cancelSignIn': SignInProgress;
   'account/connect': { step: string; email?: string };

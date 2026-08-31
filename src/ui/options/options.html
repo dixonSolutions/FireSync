@@ -201,10 +201,39 @@
       </section>
 
       <section class="card">
+        <h2>Account data</h2>
+        <div class="setting">
+          <div class="grow">
+            <div>What is in this vault</div>
+            <div id="data-summary">Not connected.</div>
+          </div>
+          <button id="refresh-data">Refresh</button>
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Saved logins</div>
+            <div>Everything FireSync holds for this account. Passwords are never shown
+                 here; open the popup to copy one.</div>
+            <ul id="data-logins"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
         <h2>Account</h2>
         <div class="setting">
           <div class="grow"><div id="account-email">Not connected</div><div id="account-detail"></div></div>
           <button class="danger" id="disconnect">Disconnect</button>
+        </div>
+        <div class="setting">
+          <div class="grow">
+            <div>Connection test</div>
+            <div>Walks the same path a sync walks — Mozilla, the token server, then your
+                 storage node — and reports each hop separately. Reads nothing, writes
+                 nothing.</div>
+            <div id="auth-check"></div>
+          </div>
+          <button id="run-auth-check">Test connection</button>
         </div>
         <div class="setting">
           <div class="grow">
