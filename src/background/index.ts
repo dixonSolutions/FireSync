@@ -13,7 +13,7 @@ import {
   schedulePeriodicSync,
   scheduleUpdateCheck,
 } from './router.ts';
-import { broadcast, getPrefs, getSignIn, getSyncEngine, getUpdateChecker, getVault } from './state.ts';
+import { broadcast, getAreas, getPrefs, getSignIn, getSyncEngine, getUpdateChecker, getVault } from './state.ts';
 
 installRouter();
 
@@ -63,9 +63,52 @@ chrome.runtime.onStartup.addListener(() => {
     await schedulePeriodicSync();
     await scheduleUpdateCheck();
     await getUpdateChecker().check().catch(() => undefined);
+    await syncIfNeverSynced();
     await refreshBadge();
   })();
 });
+
+/** Marks that this browser session has already tried the catch-up sync. */
+const STARTUP_SYNC_TRIED = 'firesync.startup.syncTried';
+
+/**
+ * Sync once per browser session for an account that has never synced at all.
+ *
+ * Connecting an account triggers the first sync, but an account connected
+ * before that was true — or one whose first sync was interrupted — sits at
+ * "0 logins, never synced" indefinitely, showing whatever error was recorded
+ * last, which for a freshly connected account is an error about not having one.
+ * Nothing in the normal run of things gets such a profile unstuck.
+ *
+ * Called from the module body rather than `chrome.runtime.onStartup`, which is
+ * not dispatched to an extension loaded with `--load-extension`: that extension
+ * is installed *as part of* startup, so the event it is waiting for has already
+ * been sent. The module body runs on every worker wake instead, and the guard
+ * below lives in `chrome.storage.session`, which dies with the browser — so
+ * this runs at most once per session however often the worker is recycled.
+ *
+ * Guarded on `lastSyncAt` being null rather than on the error, so it stops
+ * firing after one sync succeeds and never becomes a retry loop for an account
+ * that syncs and then starts failing.
+ */
+async function syncIfNeverSynced(): Promise<void> {
+  try {
+    const session = getAreas().session;
+    if (await session.get(STARTUP_SYNC_TRIED)) return;
+
+    const vault = getVault();
+    if (!(await vault.isUnlocked())) return;
+    if (!(await vault.readTokens())) return;
+    if ((await vault.readSyncState()).lastSyncAt !== null) return;
+
+    await session.set(STARTUP_SYNC_TRIED, true);
+    const result = await getSyncEngine().sync();
+    await broadcast({ type: 'state/synced', result });
+    await refreshBadge();
+  } catch {
+    // Recorded in sync state by the engine; the popup reads it from there.
+  }
+}
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   void (async () => {
@@ -158,4 +201,5 @@ chrome.storage.onChanged.addListener((_changes, area) => {
 void (async () => {
   await getPrefs().global();
   await refreshBadge();
+  await syncIfNeverSynced();
 })();

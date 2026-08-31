@@ -59,6 +59,24 @@ export function getUpdateChecker(): UpdateChecker {
 }
 
 /**
+ * First sync after an account connects.
+ *
+ * Deliberately not routed through the router's debounced `queueSync`: that is a
+ * three-second coalescing timer for local writes, and a service worker has no
+ * reason to still be alive three seconds after a sign-in tab closed. This runs
+ * immediately and keeps the worker awake for its duration.
+ */
+async function syncAfterConnect(): Promise<void> {
+  try {
+    const result = await getSyncEngine().sync();
+    await broadcast({ type: 'state/synced', result });
+  } catch {
+    // The engine already records the failure in sync state; the popup reads it
+    // from there. Throwing out of an event handler would only kill the worker.
+  }
+}
+
+/**
  * The sign-in coordinator. Rebuilt on every service-worker wake, which is the
  * point: it keeps nothing in memory, so a fresh instance can pick up a flow
  * that a previous instance started.
@@ -70,7 +88,15 @@ export function getSignIn(): SignInCoordinator {
     saveAccount: (account) => getVault().writeTokens(account),
     onComplete: () => {
       void broadcast({ type: 'state/signedin' });
+      // Connecting an account and then syncing nothing is the one outcome the
+      // onboarding page promises will not happen — it says "FireSync is syncing
+      // now" the moment this fires. The password flow has always queued a sync
+      // on connect; the hosted flow, which is the recommended route, never did,
+      // so a successful sign-in landed on "0 logins - never synced" and stayed
+      // there until an alarm happened by.
+      void syncAfterConnect();
     },
+    version: chrome.runtime.getManifest().version,
   }));
 }
 
