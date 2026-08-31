@@ -4,6 +4,74 @@ All notable changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A sign-in that worked still left the extension signed out.** The redirect is detected
+  three independent ways on purpose, but nothing serialised them: all three read the same
+  pending flow and all three redeemed the authorization code, which is single-use. One
+  exchange won and the other two came back `Unknown authorization code` — and because the
+  losers finished last, their errors overwrote the winner's result. Redundant detection was
+  always the point; redundant *redemption* was the bug. Navigation handling is now
+  serialised, and the pending flow is claimed before the token exchange rather than after,
+  so a worker killed mid-exchange cannot leave a code behind for the next wake to spend.
+- **A sign-in that took too long was rejected while holding a valid authorization code.**
+  The age cap was evaluated before FireSync worked out whether the navigation in front of it
+  *was* the redirect, so a flow that ran over budget was abandoned on the very event that
+  would have completed it — Mozilla showed "Connected" and the extension showed signed out.
+  The redirect check now comes first: a code in hand outranks a clock, and the cap does the
+  one job it is good for, reaping a flow the user walked away from. The cap also moves from
+  20 minutes to an hour, because it is measured from the moment the flow starts and counts
+  time spent browsing in other tabs, which twenty minutes does not survive.
+- **FireSync offered to save logins before an account was connected.** The save prompt was
+  gated on the vault being unlocked, which in device mode is true for the whole life of the
+  vault — and starting a sign-in creates the vault. So merely clicking "Sign in" turned on
+  save prompts for every login form, offering to store passwords somewhere that would never
+  sync. It now requires a connected account.
+- **A hosted sign-in that came back without a key dead-ended.** Confirmed against the live
+  service: Mozilla grants `oldsync` to this client and returns no `keys_jwe` anyway, because
+  the key is wrapped from material the *session* holds and a session established through
+  Google or Apple never handled a password. The client and the request are fine; the hosted
+  flow simply cannot produce a key for that kind of session — but the password flow can, because it
+  derives the key on this machine rather than relying on the content server to be holding it.
+  That outcome is now tagged rather than described: onboarding opens the password route and
+  says why, instead of printing a paragraph and stopping.
+- **"Mozilla did not return the sync key" was a guess presented as a fact.** One message
+  covered two failures needing opposite fixes — an OAuth client not permitted scoped keys,
+  and an account with no key material to give. The granted scope was in the token response
+  the whole time, so the error now reads it and says which one happened.
+- **An account that has never synced reported itself as an HTTP error.** `meta/global` is
+  written by the first browser that turns Sync on, so a 404 there is a statement about the
+  account, not a failed request — but it surfaced as "sync storage GET /storage/meta/global
+  failed with 404", which reads like a bug in FireSync and sends people looking in the wrong
+  place for something only Firefox can create. It now says so plainly.
+- **Sync could never authenticate after a hosted sign-in.** The refresh token is issued to
+  the hosted flow's OAuth client, but the sync engine refreshed it through a client
+  configured with Firefox Desktop's id instead — and a refresh token presented by a client
+  it was not issued to is rejected. Sign-in therefore always succeeded and sync always failed
+  to authenticate. The issuing client is now stored with the token and used to refresh and to
+  revoke it, so the two sign-in flows stop borrowing each other's identity.
+- **A hosted sign-in connected the account and then never synced.** The password flow has
+  always queued a sync on connect; the hosted flow — the recommended one — did not, so a
+  successful sign-in landed on "0 logins - never synced" and stayed there until a periodic
+  alarm happened by, while onboarding claimed "FireSync is syncing now". Connecting now
+  syncs immediately, and a profile that is connected but has never synced once syncs at
+  browser start, so an account already stuck in that state gets itself out.
+- **Settings never noticed you had signed in.** The page rendered its account section once
+  on load and listened for nothing, so a Settings tab open across a sign-in kept reading
+  "Not connected" under a Disconnect button while the popup showed the account. It now
+  re-renders on the same state broadcasts the popup has always used.
+- **The popup contradicted itself right after a successful sign-in.** A sync error recorded
+  while no account was connected survived the account connecting, so the popup showed the
+  signed-in address and "no Mozilla account is connected" at the same time — the UI calling
+  itself a liar at the one moment the user most needs to believe it. Connecting an account
+  now clears a stored sync error, which is stale by definition at that point.
+- **The FireSync mark was blank everywhere inside the extension.** The brand mark was a
+  placeholder gradient square that was never replaced with the logo, so the popup,
+  onboarding, Settings, unlock screen, in-page menu and save bar all showed an empty tile
+  while the toolbar button and favicon showed the real flame. All six now draw the icon.
+
 ## [0.7.0] — 2026-08-30
 
 ### Fixed

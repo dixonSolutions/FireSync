@@ -1,6 +1,6 @@
 {
   "name": "firesync",
-  "version": "0.7.0",
+  "version": "0.7.2",
   "description": "Mozilla Account login plus Firefox Sync password and autofill sync, natively inside Chrome and Chromium. No FireSync server, no cloud account, end-to-end encrypted with your own Sync key.",
   "license": "MIT",
   "private": true,
