@@ -47,11 +47,22 @@ body {
   letter-spacing: -0.01em;
 }
 
+/*
+ * The mark was a bare gradient square — a stand-in that was never replaced, so
+ * every FireSync surface *inside* the extension (popup, onboarding, options,
+ * unlock, the page menu and the save bar) showed a blank tile while the toolbar
+ * and favicon, which use the rendered PNGs, showed the real logo.
+ *
+ * It draws the simplified variant on purpose. Every place this class is used is
+ * 12-28px, and that is exactly the range `icon-small.svg` exists for: the full
+ * mark's sync ring is a 7-unit stroke on a 128 grid, under one device pixel
+ * here, and reads as a grey halo rather than a ring. The SVG carries its own
+ * rounded tile, so there is no border-radius to keep in sync with it.
+ */
 .fs-brand__mark {
   width: 20px;
   height: 20px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, var(--fs-flame), var(--fs-ember) 55%, var(--fs-violet));
+  background: url("icons/icon-small.svg") center / 100% 100% no-repeat;
   flex: none;
 }
 

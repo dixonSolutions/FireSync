@@ -86,6 +86,7 @@
         "menu-button.html",
         "notification.html",
         "theme.css",
+        "icons/icon-small.svg",
         "menu.js",
         "menu-button.js",
         "notification.js"

@@ -79,6 +79,16 @@ async function copyStatic() {
   } else {
     console.warn('! assets/icons is missing — run `npm run assets` first');
   }
+  // The extension's own pages draw the mark from the SVG rather than a PNG, so
+  // it stays sharp at whatever size each surface asks for. These are the same
+  // files `npm run assets` renders the PNGs from; shipping them keeps one
+  // source of truth for the logo instead of a second copy inside the CSS.
+  await mkdir(join(dist, 'icons'), { recursive: true });
+  for (const file of ['icon.svg', 'icon-small.svg']) {
+    const from = join(root, 'assets', file);
+    if (existsSync(from)) await cp(from, join(dist, 'icons', file));
+    else console.warn(`! assets/${file} is missing — the brand mark will not render`);
+  }
 }
 
 async function run() {
