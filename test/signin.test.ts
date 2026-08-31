@@ -10,8 +10,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryArea } from '../src/common/storage.ts';
-import { SIGNIN_KEY, SignInCoordinator, redact } from '../src/background/signin.ts';
+import { SIGNIN_KEY, SIGNIN_MAX_AGE_MS, SignInCoordinator, redact } from '../src/background/signin.ts';
 import type { HostedSignIn } from '../src/fxa/hosted.ts';
+import { NoSyncKeyError } from '../src/fxa/errors.ts';
 import type { AccountTokens } from '../src/vault/types.ts';
 
 const REDIRECT = 'https://accounts.firefox.com/oauth/success/3c49430b43dfba77';
@@ -249,8 +250,11 @@ describe('SignInCoordinator', () => {
   it('abandons a flow the user walked away from', async () => {
     const coordinator = make();
     await coordinator.begin();
-    clock += 25 * 60_000;
-    await coordinator.onNavigation(42, `${REDIRECT}?code=abc&state=st`);
+    clock += SIGNIN_MAX_AGE_MS + 5 * 60_000;
+    // Somewhere else entirely. This is what walking away looks like; the
+    // redirect URL is what finishing looks like, and the two must not be
+    // treated the same however long they took.
+    await coordinator.onNavigation(42, 'https://example.test/read-the-news');
 
     expect(saved).toEqual([]);
     expect((await coordinator.progress()).lastResult).toMatchObject({
@@ -282,6 +286,173 @@ describe('SignInCoordinator', () => {
     await coordinator.begin();
     await coordinator.onNavigation(42, undefined);
     expect((await coordinator.progress()).active).toBe(true);
+  });
+
+  it('stamps every result with the build that produced it', async () => {
+    const coordinator = new SignInCoordinator({
+      session,
+      local,
+      saveAccount: async (a) => {
+        saved.push(a);
+      },
+      flow: fakeFlow(),
+      tabs,
+      now: () => clock,
+      version: '9.9.9',
+    });
+    await coordinator.begin();
+    await coordinator.onNavigation(42, `${REDIRECT}?code=abc&state=st`);
+
+    expect((await coordinator.progress()).lastResult).toMatchObject({
+      status: 'complete',
+      version: '9.9.9',
+    });
+  });
+
+  it('marks a keyless result so the UI can offer the password flow', async () => {
+    const flow = fakeFlow({
+      complete: async () => {
+        throw new NoSyncKeyError('Mozilla granted the oldsync scope but returned no sync key', true);
+      },
+    });
+    const coordinator = make(flow);
+    await coordinator.begin();
+    await coordinator.onNavigation(42, `${REDIRECT}?code=abc&state=st`);
+
+    const { lastResult } = await coordinator.progress();
+    expect(lastResult).toMatchObject({ status: 'error', reason: 'no-sync-key' });
+  });
+
+  it('leaves reason unset for failures the UI cannot act on', async () => {
+    const flow = fakeFlow({
+      complete: async () => {
+        throw new Error('Unknown authorization code');
+      },
+    });
+    const coordinator = make(flow);
+    await coordinator.begin();
+    await coordinator.onNavigation(42, `${REDIRECT}?code=abc&state=st`);
+
+    const { lastResult } = await coordinator.progress();
+    expect(lastResult?.status).toBe('error');
+    expect(lastResult?.reason).toBeUndefined();
+  });
+
+  /**
+   * The age cap exists to reap a flow the user walked away from. It must never
+   * be the thing that rejects a sign-in that worked.
+   */
+  describe('a late redirect is still a redirect', () => {
+    it('redeems a code that arrives after the flow has aged out', async () => {
+      const coordinator = make();
+      await coordinator.begin();
+
+      // Long past the cap: the network was down for most of it.
+      clock += SIGNIN_MAX_AGE_MS + 8 * 60_000;
+      await coordinator.onNavigation(42, `${REDIRECT}?code=abc&state=st`);
+
+      expect(saved).toEqual([ACCOUNT]);
+      const { lastResult } = await coordinator.progress();
+      expect(lastResult).toMatchObject({ status: 'complete', email: ACCOUNT.email });
+    });
+
+    it('does not age out a flow that is still within the cap', async () => {
+      const coordinator = make();
+      await coordinator.begin();
+
+      clock += SIGNIN_MAX_AGE_MS - 1;
+      await coordinator.onNavigation(42, 'https://accounts.firefox.com/signin_totp_code');
+
+      expect((await coordinator.progress()).active).toBe(true);
+    });
+  });
+
+  /**
+   * The redirect is detected three ways on purpose — `tabs.onUpdated`,
+   * `webNavigation.onCommitted` and the relay content script — because any one
+   * of them can miss it. But an authorization code is single-use, so all three
+   * firing must still produce exactly one redemption.
+   *
+   * In the field this failed exactly as you would predict: three concurrent
+   * exchanges, one winner, and two `Unknown authorization code` errors that
+   * then overwrote the winner's result. The user signed in and the extension
+   * still said "Not signed in".
+   */
+  describe('redundant detection, single redemption', () => {
+    function countingFlow() {
+      let calls = 0;
+      const flow = fakeFlow({
+        complete: async () => {
+          calls += 1;
+          // The real exchange is a network round trip; the whole bug lives in
+          // that window, so the fake has to have one too.
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          if (calls > 1) throw new Error('Unknown authorization code');
+          return ACCOUNT;
+        },
+      });
+      return { flow, calls: () => calls };
+    }
+
+    it('redeems the code once when all three paths report at the same time', async () => {
+      const { flow, calls } = countingFlow();
+      const coordinator = make(flow);
+      await coordinator.begin();
+
+      const url = `${REDIRECT}?code=abc&state=st`;
+      await Promise.all([
+        coordinator.onNavigation(42, url),
+        coordinator.onNavigation(42, url),
+        coordinator.onNavigation(42, url),
+      ]);
+
+      expect(calls()).toBe(1);
+      expect(saved).toEqual([ACCOUNT]);
+      const { lastResult } = await coordinator.progress();
+      expect(lastResult).toMatchObject({ status: 'complete', email: ACCOUNT.email });
+    });
+
+    it('does not let a late duplicate overwrite the successful result', async () => {
+      const { flow } = countingFlow();
+      const coordinator = make(flow);
+      await coordinator.begin();
+
+      const url = `${REDIRECT}?code=abc&state=st`;
+      await coordinator.onNavigation(42, url);
+      // The relay content script reporting after the listeners already won.
+      await coordinator.onNavigation(42, url);
+
+      const { lastResult } = await coordinator.progress();
+      expect(lastResult).toMatchObject({ status: 'complete' });
+      expect(lastResult?.error).toBeUndefined();
+    });
+
+    it('claims the flow before exchanging, so a worker that dies mid-exchange cannot retry', async () => {
+      let released!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        released = resolve;
+      });
+      const flow = fakeFlow({
+        complete: async () => {
+          await gate;
+          return ACCOUNT;
+        },
+      });
+      const coordinator = make(flow);
+      await coordinator.begin();
+
+      const inFlight = coordinator.onNavigation(42, `${REDIRECT}?code=abc&state=st`);
+      // Let the handler reach the exchange and block there.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // A worker woken now — a fresh coordinator over the same session storage —
+      // must find nothing left to redeem.
+      expect(await session.get(SIGNIN_KEY.pending)).toBeUndefined();
+
+      released();
+      await inFlight;
+      expect(saved).toEqual([ACCOUNT]);
+    });
   });
 });
 
