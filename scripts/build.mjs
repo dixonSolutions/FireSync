@@ -57,11 +57,33 @@ const shared = {
   define: { 'process.env.NODE_ENV': JSON.stringify(dev ? 'development' : 'production') },
 };
 
+/**
+ * A development build is deliberately a *different extension* from the release.
+ *
+ * `src/manifest.json` pins a `key`, which fixes the extension id — so an
+ * unpacked build collides with the released CRX and Chromium will hold one or
+ * the other, never both. That forces a choice nobody wants: keep the
+ * auto-updating install, or test your own build.
+ *
+ * Dropping `key` gives the unpacked build a path-derived id instead, distinct
+ * from the release, so the two sit side by side. `update_url` goes with it —
+ * a local build must never be replaced by a download — and the name is marked
+ * so the two are told apart in the toolbar and on chrome://extensions.
+ */
 async function emitManifest() {
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
   const manifest = JSON.parse(await readFile(join(root, 'src/manifest.json'), 'utf8'));
   manifest.version = pkg.version;
   manifest.description = pkg.description.slice(0, 132);
+
+  if (dev) {
+    delete manifest.key;
+    delete manifest.update_url;
+    manifest.name = `${manifest.name} (dev)`;
+    manifest.short_name = `${manifest.short_name} dev`;
+    manifest.version_name = `${pkg.version}-dev`;
+  }
+
   await writeFile(join(dist, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
