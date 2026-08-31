@@ -158,6 +158,7 @@ export class ConnectSession {
       uid: this.uid,
       email: this.email,
       refreshToken: tokenResponse.refresh_token,
+      clientId: this.client.oauthClientId,
       kSync: toB64(syncKeys.kSync),
       kid,
       ...(deviceId ? { deviceId } : {}),

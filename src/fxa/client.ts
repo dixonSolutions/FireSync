@@ -57,7 +57,14 @@ export const DEFAULT_OAUTH_CLIENT_ID = '5882386c6d801776';
  * navigates to, which `chrome.tabs.onUpdated` can see.
  *
  * Verified against the live service: FxA accepts this client with the oldsync
- * scope, PKCE, and a `keys_jwk` scoped-key request.
+ * scope, PKCE, and a `keys_jwk` scoped-key request, and grants the scope — a
+ * real sign-in came back with `scope: profile https://identity.mozilla.com/apps/oldsync`.
+ *
+ * Granting the scope is not the same as returning a key. `keys_jwe` is produced
+ * by the content server from key material the *session* holds, so a session
+ * established through Google or Apple grants oldsync and returns no key. That
+ * is an account-and-session limit, not a limit of this client, and the password
+ * flow is the way through it.
  */
 export const DEFAULT_HOSTED_CLIENT_ID = '3c49430b43dfba77';
 
@@ -312,11 +319,14 @@ export class FxAClient {
   /** Mint a fresh access token. Refresh tokens do not expire on their own. */
   async refreshAccessToken(
     refreshToken: string,
-    options: { scope?: string; ttl?: number } = {},
+    options: { scope?: string; ttl?: number; clientId?: string } = {},
   ): Promise<OAuthTokenResponse> {
     const body: Record<string, unknown> = {
       grant_type: 'refresh_token',
-      client_id: this.oauthClientId,
+      // A refresh token belongs to the client it was issued to; presenting it
+      // as another client is rejected. Callers that hold a stored token pass
+      // the client that issued it rather than trusting this instance's default.
+      client_id: options.clientId ?? this.oauthClientId,
       refresh_token: refreshToken,
       scope: options.scope ?? OLDSYNC_SCOPE,
     };
@@ -325,9 +335,9 @@ export class FxAClient {
   }
 
   /** Revoke a refresh token — what "Sign out" should actually do. */
-  async destroyOAuthToken(token: string): Promise<void> {
+  async destroyOAuthToken(token: string, options: { clientId?: string } = {}): Promise<void> {
     await this.request('POST', '/oauth/destroy', {
-      body: { client_id: this.oauthClientId, token },
+      body: { client_id: options.clientId ?? this.oauthClientId, token },
     });
   }
 

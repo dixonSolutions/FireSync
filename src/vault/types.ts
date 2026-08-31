@@ -46,6 +46,16 @@ export interface AccountTokens {
   kSync: string;
   /** `<keyRotationTimestamp>-<base64url fingerprint>` for the X-KeyID header. */
   kid: string;
+  /**
+   * The OAuth client the refresh token was issued to.
+   *
+   * A refresh token belongs to one client, and FxA rejects it when presented by
+   * another. The two sign-in flows use different clients — hosted sign-in has
+   * its own, the password flow uses Firefox Desktop's — so the client cannot be
+   * inferred later and has to travel with the token. Absent on records written
+   * before this existed; callers fall back to their configured default.
+   */
+  clientId?: string;
   /** Registered FxA device id, if we registered one. */
   deviceId?: string;
   connectedAt: number;
