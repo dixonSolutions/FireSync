@@ -41,6 +41,25 @@ export class SyncStorageError extends Error implements StorageError {
   }
 }
 
+/**
+ * The account has Sync storage but nothing has ever been written to it.
+ *
+ * `meta/global` is created by the first browser that turns Sync on, so its
+ * absence says the account has never synced rather than that this request went
+ * wrong. Distinct type because the remedy is in Firefox, not here.
+ */
+export class SyncNeverEnabledError extends SyncStorageError {
+  constructor() {
+    super(
+      'this Mozilla account has never synced. Turn on Sync in Firefox and let it ' +
+        'upload once — the passwords collection is created by the first browser ' +
+        'that syncs, and FireSync can only read what is already there.',
+      404,
+    );
+    this.name = 'SyncNeverEnabledError';
+  }
+}
+
 /** HTTP 412: someone else wrote to this collection since we last read it. */
 export class ConflictError extends SyncStorageError {
   constructor(readonly serverLastModified: number | null) {

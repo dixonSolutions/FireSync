@@ -28,7 +28,13 @@ import { CollectionKeys, decryptRecord, encryptRecord, RecordCryptoError } from 
 import type { EncryptedPayload, KeyBundle } from './crypto.ts';
 import { engineWasReset, parseMetaGlobal, UnsupportedStorageVersionError } from './meta.ts';
 import type { MetaGlobal } from './meta.ts';
-import { ConflictError, StorageAuthError, SyncStorageClient } from './storage.ts';
+import {
+  ConflictError,
+  StorageAuthError,
+  SyncNeverEnabledError,
+  SyncStorageClient,
+  SyncStorageError,
+} from './storage.ts';
 import type { BasicStorageObject, ServerConfiguration } from './storage.ts';
 import { areNodeCredentialsFresh, fetchSyncNode } from './tokenserver.ts';
 import type { SyncNodeCredentials } from './tokenserver.ts';
@@ -202,6 +208,10 @@ export class SyncEngine {
     if (!this.accessToken || this.accessToken.expiresAt <= this.now()) {
       const refreshed = await this.client.refreshAccessToken(tokens.refreshToken, {
         scope: OLDSYNC_SCOPE,
+        // The hosted flow and the password flow use different OAuth clients, and
+        // this engine's client is configured with neither in particular. Refresh
+        // as whoever the token was actually issued to.
+        ...(tokens.clientId ? { clientId: tokens.clientId } : {}),
       });
       this.accessToken = {
         token: refreshed.access_token,
@@ -229,7 +239,20 @@ export class SyncEngine {
   }
 
   private async readMetaGlobal(storage: SyncStorageClient): Promise<MetaGlobal> {
-    const bso = await storage.getRecord('meta', 'global');
+    let bso;
+    try {
+      bso = await storage.getRecord('meta', 'global');
+    } catch (error) {
+      // `meta/global` is written by the first browser that turns Sync on. A 404
+      // is therefore not a failure of this request but a statement about the
+      // account: nothing has ever synced to it. Reported as a raw HTTP status
+      // it reads like a bug in FireSync, and sends people looking in the wrong
+      // place for something only Firefox can create.
+      if (error instanceof SyncStorageError && error.status === 404) {
+        throw new SyncNeverEnabledError();
+      }
+      throw error;
+    }
     try {
       return parseMetaGlobal(JSON.parse(bso.payload));
     } catch (error) {

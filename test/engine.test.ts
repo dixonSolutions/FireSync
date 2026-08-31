@@ -79,6 +79,22 @@ describe('SyncEngine', () => {
     context = await harness();
   });
 
+  /**
+   * `meta/global` is written by the first browser that turns Sync on. Its
+   * absence is a fact about the account, not a transport failure, and saying
+   * "404" sends people hunting for a bug in FireSync instead of turning Sync on.
+   */
+  it('says the account has never synced when meta/global is missing', async () => {
+    context.server.removeMetaGlobal();
+
+    const result = await context.engine.sync();
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/never synced/);
+    expect(result.error).toMatch(/Turn on Sync in Firefox/);
+    expect(result.error).not.toMatch(/404/);
+  });
+
   it('pulls logins that only exist in Firefox', async () => {
     await context.server.seed('passwords', firefoxLogin());
 

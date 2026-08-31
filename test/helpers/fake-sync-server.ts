@@ -47,6 +47,7 @@ export class FakeSyncServer {
 
   private clock: number;
   private readonly syncKeyBundle: KeyBundle;
+  private hasMetaGlobal = true;
   private metaGlobal = {
     storageVersion: 5,
     syncID: 'meta-sync-id',
@@ -73,6 +74,11 @@ export class FakeSyncServer {
 
   setMetaGlobal(patch: Partial<typeof this.metaGlobal>): void {
     this.metaGlobal = { ...this.metaGlobal, ...patch };
+  }
+
+  /** Model an account that has never had Sync turned on in any browser. */
+  removeMetaGlobal(): void {
+    this.hasMetaGlobal = false;
   }
 
   /** Seed a decrypted record into a collection. */
@@ -184,6 +190,7 @@ export class FakeSyncServer {
     if (path === '/info/quota') return this.json([1, 1000]);
 
     if (path === '/storage/meta/global' && method === 'GET') {
+      if (!this.hasMetaGlobal) return this.json({ error: 'not found' }, 404);
       return this.json({
         id: 'global',
         modified: this.now(),
