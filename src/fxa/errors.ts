@@ -58,3 +58,23 @@ export class FxANetworkError extends Error {
     this.name = 'FxANetworkError';
   }
 }
+
+/**
+ * The hosted flow completed, but Mozilla handed back no sync key.
+ *
+ * Worth its own type because it is the one hosted-flow failure with a remedy:
+ * the password flow derives the key locally and does not depend on the content
+ * server having key material in the session. The coordinator turns this into a
+ * `reason` on the stored result so the UI can offer that route rather than
+ * dead-ending on a paragraph of explanation.
+ */
+export class NoSyncKeyError extends Error {
+  /** Whether Mozilla granted `oldsync` at all — the two causes need different words. */
+  readonly grantedOldsync: boolean;
+
+  constructor(message: string, grantedOldsync: boolean) {
+    super(message);
+    this.name = 'NoSyncKeyError';
+    this.grantedOldsync = grantedOldsync;
+  }
+}

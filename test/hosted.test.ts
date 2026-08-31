@@ -240,7 +240,75 @@ describe('HostedSignIn.complete', () => {
     const pending = await flow.start();
     await expect(
       flow.complete(`${pending.redirectUri}?code=c&state=${pending.state}`, pending),
-    ).rejects.toThrow(/did not return the sync key/);
+    ).rejects.toThrow(/granted the oldsync scope but returned no sync key/);
+  });
+
+  /**
+   * The two ways a sign-in can end up without a sync key need opposite fixes —
+   * set a Mozilla password, versus use a different OAuth client — so the error
+   * has to say which one happened rather than guess.
+   */
+  /**
+   * A refresh token belongs to the client it was issued to. The hosted flow and
+   * the password flow use different clients, so the sync engine cannot guess —
+   * the client has to be stored alongside the token it goes with.
+   */
+  it('records the OAuth client the refresh token was issued to', async () => {
+    const kSync = randomBytes(64);
+    const h = harness();
+    const flow = new HostedSignIn({ client: h.client, contentServerUrl: CONTENT });
+    const pending = await flow.start();
+    h.setKeysJwe(await makeKeysJwe(
+      new URL(pending.authorizationUrl).searchParams.get('keys_jwk') as string,
+      kSync,
+      '1510628805-abcdefghijklmnopqrstuv',
+    ));
+
+    const account = await flow.complete(
+      `${pending.redirectUri}?code=c&state=${pending.state}`,
+      pending,
+    );
+    expect(account.clientId).toBe(DEFAULT_HOSTED_CLIENT_ID);
+  });
+
+  it('names the account, not the client, when oldsync was granted but no key came back', async () => {
+    const h = harness({
+      tokenBody: () => ({
+        access_token: 'a',
+        refresh_token: 'r',
+        expires_in: 3600,
+        token_type: 'bearer',
+        scope: `profile ${OLDSYNC_SCOPE}`,
+      }),
+    });
+    const flow = new HostedSignIn({ client: h.client, contentServerUrl: CONTENT });
+    const pending = await flow.start();
+    const error = await flow
+      .complete(`${pending.redirectUri}?code=c&state=${pending.state}`, pending)
+      .catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/no key material/);
+    expect((error as Error).message).toMatch(/Google or Apple/);
+    expect((error as Error).message).toContain(OLDSYNC_SCOPE);
+  });
+
+  it('names the client when oldsync was never granted at all', async () => {
+    const h = harness({
+      tokenBody: () => ({
+        access_token: 'a',
+        refresh_token: 'r',
+        expires_in: 3600,
+        token_type: 'bearer',
+        scope: 'profile',
+      }),
+    });
+    const flow = new HostedSignIn({ client: h.client, contentServerUrl: CONTENT });
+    const pending = await flow.start();
+    const error = await flow
+      .complete(`${pending.redirectUri}?code=c&state=${pending.state}`, pending)
+      .catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/did not grant the oldsync scope/);
+    expect((error as Error).message).toMatch(/not permitted scoped keys/);
+    expect((error as Error).message).toContain('Granted scope: profile');
   });
 
   it('fails clearly when there is no refresh token to persist', async () => {

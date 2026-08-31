@@ -36,7 +36,25 @@ export interface ScopedKeyRequest {
   keysJwk: string;
 }
 
-/** Generate the ephemeral P-256 key pair and encode the `keys_jwk` parameter. */
+/**
+ * Generate the ephemeral P-256 key pair and encode the `keys_jwk` parameter.
+ *
+ * Sending this changes the shape of the whole sign-in, which is worth knowing
+ * before wondering why the user was asked to authenticate again. The scoped key
+ * bundle is built in FxA's own web content *during* authentication: the page
+ * runs the onepw protocol against the typed password to recover `kB`, then
+ * derives the per-scope key from it. A cookie session cannot stand in for that,
+ * so FxA re-authenticates for any request carrying `keys_jwk` no matter how
+ * recently the user signed in. FireSync sends no `prompt` parameter; the login
+ * prompt is FxA going after key material.
+ *
+ * The corollary is the one that bites: an authentication that never handles the
+ * password — Google or Apple sign-in — satisfies "who are you" without ever
+ * computing `kB`. FxA grants the scope and returns an empty key bundle. Nothing
+ * client-side can recover it, and neither can Mozilla; `kB` is
+ * `wrapKb XOR unwrapBKey`, and only the password yields `unwrapBKey`.
+ * See https://mozilla.github.io/ecosystem-platform/explanation/scoped-keys
+ */
 export async function createScopedKeyRequest(): Promise<ScopedKeyRequest> {
   const pair = await generateEcdhKeyPair();
   const publicJwk = (await exportJwk(pair.publicKey)) as JsonWebKey & { x: string; y: string };

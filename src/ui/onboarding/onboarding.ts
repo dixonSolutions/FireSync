@@ -80,6 +80,27 @@ document.getElementById('hosted-signin')?.addEventListener('click', async (event
       handleStep('complete');
       return;
     }
+    // Mozilla finished the sign-in but handed back no key. That is a dead end
+    // for this route and only this route: the password flow derives the key
+    // locally instead of relying on the content server to have it in the
+    // session, which is exactly the case for an account authenticated through
+    // Google or Apple. So open that route rather than describing the problem.
+    if (result.reason === 'no-sync-key') {
+      const fallback = document.getElementById('password-fallback') as HTMLDetailsElement | null;
+      if (fallback) {
+        fallback.open = true;
+        fallback.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      text(
+        'hosted-error',
+        `${result.error ?? 'Mozilla returned no sync key.'} ` +
+          'Signing in with your Mozilla password instead will work — the form below derives ' +
+          'the key on this machine. If the account has no Mozilla password yet, set one at ' +
+          'accounts.firefox.com first; Firefox Sync needs it too.',
+      );
+      return;
+    }
+
     text(
       'hosted-error',
       result.status === 'cancelled'

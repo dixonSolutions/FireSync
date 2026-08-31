@@ -38,6 +38,7 @@ import {
   parseRedirect,
   unwrapScopedKeys,
 } from './oauth.ts';
+import { NoSyncKeyError } from './errors.ts';
 import { OLDSYNC_SCOPE } from './onepw.ts';
 
 /** Everything needed to finish a flow that is already in progress. */
@@ -130,9 +131,24 @@ export class HostedSignIn {
       throw new Error('Mozilla did not issue a refresh token; sign-in cannot be persisted');
     }
     if (!tokens.keys_jwe) {
-      throw new Error(
-        'Mozilla did not return the sync key. The OAuth client may not be permitted the ' +
-          'oldsync scope with scoped keys.',
+      // Two very different failures used to share one guessed message. They need
+      // opposite fixes, and the granted scope tells them apart for free — it is
+      // already in the response we are holding.
+      const granted = tokens.scope ?? '';
+      const grantedOldsync = granted.split(/\s+/).filter(Boolean).includes(OLDSYNC_SCOPE);
+      throw new NoSyncKeyError(
+        grantedOldsync
+          ? 'Mozilla granted the oldsync scope but returned no sync key, so the client and ' +
+            'the request were both fine — this sign-in session simply had no key material to ' +
+            'wrap. The sync key is derived from your Mozilla password, and a session ' +
+            'established through Google or Apple never handled one. Signing in with the ' +
+            'password below derives the key on this machine instead. If the account has ' +
+            'never had a Mozilla password, set one at accounts.firefox.com first — Firefox ' +
+            `Sync cannot work without it either. Granted scope: ${granted}`
+          : 'Mozilla did not grant the oldsync scope at all, so there was never a sync key to ' +
+            'return. The OAuth client is not permitted scoped keys for it. Granted scope: ' +
+            `${granted || '(none reported)'}`,
+        grantedOldsync,
       );
     }
 
@@ -149,6 +165,7 @@ export class HostedSignIn {
       uid: profile.uid ?? '',
       email: profile.email ?? '',
       refreshToken: tokens.refresh_token,
+      clientId: this.clientId,
       kSync: toB64(keys.kSync),
       kid,
       connectedAt: this.now(),
