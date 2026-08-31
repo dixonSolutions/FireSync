@@ -49,7 +49,45 @@
       <button class="ghost" id="update-banner-dismiss" aria-label="Dismiss">✕</button>
     </div>
     <main>
-      <input type="text" id="filter" placeholder="Filter logins…" autocomplete="off" />
+      <section id="site-panel" hidden>
+        <div class="site-head">
+          <span class="grow" id="site-origin"></span>
+          <button class="ghost" id="site-toggle" aria-expanded="false"
+                  title="Preferences that apply only to this site">Site settings</button>
+        </div>
+        <ul id="site-list"></ul>
+        <div id="site-empty" class="muted" hidden>No saved logins for this site.</div>
+        <div id="site-prefs" hidden>
+          <label class="site-pref">
+            <input type="checkbox" id="site-autofill" />
+            <span>Fill automatically on page load</span>
+          </label>
+          <label class="site-pref">
+            <input type="checkbox" id="site-neversave" />
+            <span>Never offer to save logins here</span>
+          </label>
+          <label class="site-pref">
+            <span class="grow">Inline menu</span>
+            <select id="site-inlinemenu">
+              <option value="">Use the global setting</option>
+              <option value="on">On</option>
+              <option value="iconOnly">Icon only</option>
+              <option value="off">Off</option>
+            </select>
+          </label>
+          <label class="site-pref">
+            <span class="grow">URI match</span>
+            <select id="site-match">
+              <option value="">Use the global setting</option>
+              <option value="domain">Base domain</option>
+              <option value="host">Host</option>
+              <option value="startsWith">Starts with</option>
+              <option value="exact">Exact</option>
+            </select>
+          </label>
+        </div>
+      </section>
+      <input type="text" id="filter" placeholder="Filter all logins…" autocomplete="off" />
       <ul id="list"></ul>
       <div class="error" id="error"></div>
     </main>

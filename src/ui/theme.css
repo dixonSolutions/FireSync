@@ -109,3 +109,26 @@ label { display: block; font-size: 12px; color: var(--fs-text-dim); margin-botto
 .error { color: var(--fs-danger); font-size: 12px; margin-top: 8px; min-height: 16px; }
 .ok { color: var(--fs-ok); }
 hr { border: 0; border-top: 1px solid var(--fs-border); margin: 14px 0; }
+
+/* The popup's "this site" panel: what applies to the page you are looking at. */
+.site-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  padding: 2px 0 6px;
+}
+.site-head .grow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-pref {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  color: var(--fs-text-dim);
+}
+.site-pref select { width: auto; }
+#site-panel {
+  border-bottom: 1px solid var(--fs-border);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}

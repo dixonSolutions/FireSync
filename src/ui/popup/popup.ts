@@ -100,6 +100,19 @@ function showSignInPrompt(): void {
   listEl.append(wrap);
 }
 
+/** Reveal one password and put it on the clipboard. Shared by both lists. */
+async function copyPassword(id: string, button: HTMLButtonElement): Promise<void> {
+  try {
+    const record = await sendMessage({ type: 'passwords/get', id });
+    if (!record) return;
+    await navigator.clipboard.writeText(record.password);
+    button.textContent = 'Copied';
+    setTimeout(() => (button.textContent = 'Copy'), 1200);
+  } catch (error) {
+    showError(error);
+  }
+}
+
 function renderList(): void {
   const needle = filterEl.value.trim().toLowerCase();
   const visible = needle
@@ -128,17 +141,7 @@ function renderList(): void {
     copy.className = 'ghost';
     copy.textContent = 'Copy';
     copy.title = 'Copy password to the clipboard';
-    copy.addEventListener('click', async () => {
-      try {
-        const record = await sendMessage({ type: 'passwords/get', id: credential.id });
-        if (!record) return;
-        await navigator.clipboard.writeText(record.password);
-        copy.textContent = 'Copied';
-        setTimeout(() => (copy.textContent = 'Copy'), 1200);
-      } catch (error) {
-        showError(error);
-      }
-    });
+    copy.addEventListener('click', () => void copyPassword(credential.id, copy));
 
     item.append(text, copy);
     listEl.append(item);
@@ -224,6 +227,7 @@ async function load(): Promise<void> {
       credentials = await sendMessage({ type: 'passwords/list' });
       credentials.sort((a, b) => a.origin.localeCompare(b.origin));
       renderList();
+      await renderSite().catch(showError);
     }
   } catch (error) {
     showError(error);
@@ -231,6 +235,110 @@ async function load(): Promise<void> {
 }
 
 filterEl.addEventListener('input', renderList);
+
+/**
+ * The "this site" panel.
+ *
+ * Opening the popup on a page and being shown every login you own, in one flat
+ * list, answers a question nobody asked. What applies to the page in front of
+ * you is the credentials that match it and the preferences that override the
+ * global ones for it — so both come first, and the full list stays underneath
+ * for when you actually want to search it.
+ */
+let sitePageUrl: string | null = null;
+
+function credentialItem(credential: CredentialSummary): HTMLLIElement {
+  const item = document.createElement('li');
+  const text = document.createElement('div');
+  text.className = 'grow';
+  const user = document.createElement('div');
+  user.className = 'user';
+  user.textContent = credential.username || '(no username)';
+  const origin = document.createElement('div');
+  origin.className = 'origin';
+  origin.textContent = credential.origin;
+  text.append(user, origin);
+
+  const copy = document.createElement('button');
+  copy.className = 'ghost';
+  copy.textContent = 'Copy';
+  copy.title = 'Copy password to the clipboard';
+  copy.addEventListener('click', () => void copyPassword(credential.id, copy));
+
+  item.append(text, copy);
+  return item;
+}
+
+async function renderSite(): Promise<void> {
+  const panel = el('site-panel');
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const url = tab?.url ?? '';
+  // Extension pages and chrome:// have no site preferences and no logins.
+  if (!/^https?:/i.test(url)) {
+    panel.hidden = true;
+    return;
+  }
+  sitePageUrl = url;
+  panel.hidden = false;
+  el('site-origin').textContent = new URL(url).host;
+
+  const query = await sendMessage({ type: 'autofill/query', pageUrl: url });
+  const list = el('site-list');
+  list.replaceChildren();
+  for (const match of query.matches) list.append(credentialItem(match));
+  el('site-empty').hidden = query.matches.length > 0;
+
+  const site = await sendMessage({ type: 'prefs/forUrl', pageUrl: url });
+  elInput('site-autofill').checked = site?.autoFillOnLoad ?? false;
+  elInput('site-neversave').checked = site?.neverSave ?? false;
+  elSelect('site-inlinemenu').value = site?.inlineMenu ?? '';
+  elSelect('site-match').value = site?.matchStrategy ?? '';
+}
+
+function el(id: string): HTMLElement {
+  return document.getElementById(id) as HTMLElement;
+}
+function elInput(id: string): HTMLInputElement {
+  return document.getElementById(id) as HTMLInputElement;
+}
+function elSelect(id: string): HTMLSelectElement {
+  return document.getElementById(id) as HTMLSelectElement;
+}
+
+async function patchSite(patch: Record<string, unknown>): Promise<void> {
+  if (!sitePageUrl) return;
+  try {
+    await sendMessage({
+      type: 'prefs/setForUrl',
+      pageUrl: sitePageUrl,
+      patch: patch as never,
+    });
+  } catch (error) {
+    showError(error);
+  }
+}
+
+el('site-toggle').addEventListener('click', () => {
+  const prefs = el('site-prefs');
+  prefs.hidden = !prefs.hidden;
+  el('site-toggle').setAttribute('aria-expanded', String(!prefs.hidden));
+});
+elInput('site-autofill').addEventListener('change', (event) => {
+  void patchSite({ autoFillOnLoad: (event.target as HTMLInputElement).checked });
+});
+elInput('site-neversave').addEventListener('change', (event) => {
+  void patchSite({ neverSave: (event.target as HTMLInputElement).checked });
+});
+elSelect('site-inlinemenu').addEventListener('change', (event) => {
+  const value = (event.target as HTMLSelectElement).value;
+  void patchSite({ inlineMenu: value === '' ? undefined : value });
+});
+elSelect('site-match').addEventListener('change', (event) => {
+  const value = (event.target as HTMLSelectElement).value;
+  void patchSite({ matchStrategy: value === '' ? undefined : value });
+});
+
+
 
 document.getElementById('lock')?.addEventListener('click', async () => {
   await sendMessage({ type: 'vault/lock' });
