@@ -102,15 +102,21 @@ export function createOverlay(options: {
   };
 }
 
+/** A live anchor: `detach` stops tracking, `reposition` re-runs the placement. */
+export interface Anchor {
+  detach(): void;
+  reposition(): void;
+}
+
 /**
  * Keep an overlay glued to a field through scrolling, resizing, and layout
- * changes. Returns a teardown function.
+ * changes.
  */
 export function anchorTo(
   handle: OverlayHandle,
   target: HTMLElement,
   place: (rect: DOMRect, host: HTMLElement) => void,
-): () => void {
+): Anchor {
   const reposition = (): void => {
     const rect = target.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) {
@@ -146,12 +152,15 @@ export function anchorTo(
 
   const interval = window.setInterval(reposition, 500);
 
-  return () => {
-    window.removeEventListener('scroll', scrollListener, { capture: true });
-    window.removeEventListener('resize', scrollListener);
-    resizeObserver?.disconnect();
-    intersectionObserver?.disconnect();
-    window.clearInterval(interval);
+  return {
+    reposition,
+    detach() {
+      window.removeEventListener('scroll', scrollListener, { capture: true });
+      window.removeEventListener('resize', scrollListener);
+      resizeObserver?.disconnect();
+      intersectionObserver?.disconnect();
+      window.clearInterval(interval);
+    },
   };
 }
 
@@ -164,12 +173,82 @@ export function placeInFieldButton(rect: DOMRect, host: HTMLElement): void {
   host.style.top = `${rect.top + window.scrollY + (rect.height - size) / 2}px`;
 }
 
-/** Place the credential list directly beneath a field. */
-export function placeMenu(rect: DOMRect, host: HTMLElement): void {
-  const width = Math.max(260, Math.min(rect.width, 420));
+/**
+ * Where the popover sits relative to the field, and where its caret points.
+ *
+ * The caret is drawn inside the iframe — the host is just a box holding it —
+ * so the side and the caret offset have to be handed to the menu page rather
+ * than applied here.
+ */
+export interface MenuPlacement {
+  side: 'above' | 'below';
+  /** Where the caret points, as an offset from the popover's own left edge. */
+  caret: number;
+}
+
+/**
+ * How close to a viewport edge the popover is allowed to come.
+ *
+ * The gap between the field and the card itself is *not* here: the host box is
+ * flush against the field and menu.html pads the caret's side by 8px, so the
+ * caret and the space it needs are described in one place.
+ */
+const VIEWPORT_MARGIN = 8;
+/** Keeps the caret off the popover's rounded corners. */
+const CARET_INSET = 18;
+
+function clamp(value: number, low: number, high: number): number {
+  return Math.min(Math.max(value, low), Math.max(low, high));
+}
+
+/**
+ * Place the credential list against a field.
+ *
+ * It is centred on the field and sits below it, because that is where a field's
+ * own suggestions appear and it is the one position that does not depend on
+ * which way the page happens to be laid out. Everything after that is the page
+ * running out of room: the popover slides back inside whichever viewport edge
+ * it overruns, and flips above the field when there is no room below it and
+ * more room above. The caret keeps pointing at the field through all of it, so
+ * a shifted popover still says which field it belongs to.
+ */
+export function placeMenu(rect: DOMRect, host: HTMLElement): MenuPlacement {
+  const viewportWidth = document.documentElement.clientWidth;
+  const viewportHeight = document.documentElement.clientHeight;
+
+  const width = Math.min(
+    Math.max(260, Math.min(rect.width, 420)),
+    Math.max(180, viewportWidth - VIEWPORT_MARGIN * 2),
+  );
   host.style.width = `${width}px`;
-  host.style.left = `${rect.left + window.scrollX}px`;
-  host.style.top = `${rect.bottom + window.scrollY + 2}px`;
+
+  // Set by the menu page's own resize report; 0 on the first pass, which just
+  // means the first placement is provisional and the report re-runs this.
+  const height = host.offsetHeight;
+
+  const centre = rect.left + rect.width / 2;
+  const left = clamp(centre - width / 2, VIEWPORT_MARGIN, viewportWidth - VIEWPORT_MARGIN - width);
+
+  const roomBelow = viewportHeight - rect.bottom - VIEWPORT_MARGIN;
+  const roomAbove = rect.top - VIEWPORT_MARGIN;
+  const side: 'above' | 'below' =
+    height <= roomBelow || roomBelow >= roomAbove ? 'below' : 'above';
+
+  host.style.left = `${left + window.scrollX}px`;
+  host.style.top = `${(side === 'below' ? rect.bottom : rect.top - height) + window.scrollY}px`;
+
+  return { side, caret: clamp(centre - left, CARET_INSET, width - CARET_INSET) };
+}
+
+/**
+ * Whether a node is one of our overlay hosts.
+ *
+ * Focus landing inside a closed shadow root is reported to the page as the
+ * host element, so this is how the content script tells "the user clicked our
+ * popover" from "the user clicked away".
+ */
+export function isOverlayHost(node: Node | null): boolean {
+  return node instanceof Element && node.hasAttribute(HOST_ATTRIBUTE);
 }
 
 /** Remove any FireSync overlay left behind by a previous injection. */
