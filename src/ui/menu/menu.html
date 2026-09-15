@@ -6,7 +6,34 @@
     <link rel="stylesheet" href="theme.css" />
     <style>
       html, body { background: transparent; }
+
+      /*
+       * The caret's 8px of space is body padding on whichever side the popover
+       * points from, so it is part of the height this page reports and the
+       * content script can keep the host box flush against the field.
+       */
+      body { position: relative; }
+      body.below { padding-top: 8px; }
+      body.above { padding-bottom: 8px; }
+
+      /*
+       * A 10px square turned 45°, centred on the card's edge. Only the two
+       * outer sides carry a border — the other two would otherwise draw a line
+       * across the caret's base, where the card's own border already is.
+       */
+      .caret {
+        position: absolute;
+        width: 10px; height: 10px;
+        background: var(--fs-surface);
+        border: 1px solid transparent;
+        transform: rotate(45deg);
+        z-index: 1;
+      }
+      body.below .caret { top: 3px; border-top-color: var(--fs-border); border-left-color: var(--fs-border); }
+      body.above .caret { bottom: 3px; border-bottom-color: var(--fs-border); border-right-color: var(--fs-border); }
+
       .card {
+        position: relative;
         background: var(--fs-surface);
         border: 1px solid var(--fs-border);
         border-radius: var(--fs-radius);
@@ -31,7 +58,8 @@
       .empty { padding: 14px 12px; color: var(--fs-text-dim); }
     </style>
   </head>
-  <body>
+  <body class="below">
+    <div class="caret" id="caret"></div>
     <div class="card">
       <div class="head"><span class="fs-brand__mark" style="width:12px;height:12px"></span> FireSync</div>
       <ul id="list"></ul>

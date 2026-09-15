@@ -6,7 +6,33 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **The inline menu now follows focus instead of waiting to be clicked.** A field with saved
+  logins showed an icon and nothing else; the list of what could go in the field was one
+  click away, at the moment the user was least likely to go looking for it. Focusing a
+  credential field now opens the list straight away, and leaving the field closes it — the
+  resting state is still the icon alone. It opens only when there is something to pick, so
+  "no saved logins for this site" stays an answer to a click rather than a box over the page,
+  and it never takes focus off the field it opened from, because the user is about to type
+  there. The icon also moves to whichever credential field has focus rather than sitting on
+  the form's first one, so on a username-and-password form it is where the user is looking.
+
+- **The popover is placed against the space the page actually has.** It was pinned to the
+  field's left edge and below it, with no check that either fit, so a field low in the window
+  or hard against an edge put the list partly off-screen. It is now centred on the field,
+  slides back inside whichever viewport edge it would overrun, and flips above the field when
+  there is no room below and more above. A caret keeps pointing at the field through all of
+  it, so a popover that had to move still says which field it belongs to.
+
 ### Fixed
+
+- **The icon in the page was a cropped white blob, and was not the FireSync logo.** It drew a
+  water droplet with a detached arc under it — a shape that appears nowhere else in the
+  product — and at the 14-22px this button renders at, that arc is under a device pixel and
+  came out as a chipped crescent hanging off the droplet. It now draws the same `icon-small.svg`
+  every other FireSync surface uses, which exists for exactly this size range and is a single
+  solid shape with no hairline strokes to lose.
 
 - **A sign-in that worked still left the extension signed out.** The redirect is detected
   three independent ways on purpose, but nothing serialised them: all three read the same
