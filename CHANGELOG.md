@@ -27,6 +27,19 @@ All notable changes are recorded here. The format follows
   there is no room below and more above. A caret keeps pointing at the field through all of
   it, so a popover that had to move still says which field it belongs to.
 
+### Fixed
+
+- **The icon in the page was a cropped white blob, and was not the FireSync logo.** It drew a
+  water droplet with a detached arc under it — a shape that appears nowhere else in the
+  product — and at the 14-22px this button renders at, that arc is under a device pixel and
+  came out as a chipped crescent hanging off the droplet. It now draws the same `icon-small.svg`
+  every other FireSync surface uses, which exists for exactly this size range and is a single
+  solid shape with no hairline strokes to lose.
+
+## [0.7.2] — 2026-08-31
+
+### Changed
+
 - **Settings reports which hop of a Sync connection is broken.** Every failure looked
   identical from outside: one sentence naming no stage. A refresh token presented by the wrong
   OAuth client, a Hawk signature the storage node rejected, and an account that had never
@@ -53,20 +66,9 @@ All notable changes are recorded here. The format follows
 
 ### Fixed
 
-- **The icon in the page was a cropped white blob, and was not the FireSync logo.** It drew a
-  water droplet with a detached arc under it — a shape that appears nowhere else in the
-  product — and at the 14-22px this button renders at, that arc is under a device pixel and
-  came out as a chipped crescent hanging off the droplet. It now draws the same `icon-small.svg`
-  every other FireSync surface uses, which exists for exactly this size range and is a single
-  solid shape with no hairline strokes to lose.
-
 - **Credit cards were missing from the vault's own counts.** `vault.stats()` tallied passwords
   and addresses and ignored `creditcards` entirely, in both the count and the pending-upload
   total — so a card waiting to sync showed as nothing waiting at all.
-
-## [0.7.2] — 2026-08-31
-
-### Fixed
 
 - **A sign-in that worked still left the extension signed out.** The redirect is detected
   three independent ways on purpose, but nothing serialised them: all three read the same

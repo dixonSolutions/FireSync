@@ -190,7 +190,13 @@ jobs:
     if: needs.build.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
+      # Full history and tags: the notes below are a commit range between this
+      # release and the last one, and a shallow clone has neither end of it.
+      # Without this the range silently collapses to the single commit the
+      # runner checked out, which is what every release before 0.8.0 shipped.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/download-artifact@v5
         with:
