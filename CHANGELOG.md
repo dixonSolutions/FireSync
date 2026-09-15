@@ -6,6 +6,8 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-09-15
+
 ### Changed
 
 - **The inline menu now follows focus instead of waiting to be clicked.** A field with saved
@@ -25,6 +27,30 @@ All notable changes are recorded here. The format follows
   there is no room below and more above. A caret keeps pointing at the field through all of
   it, so a popover that had to move still says which field it belongs to.
 
+- **Settings reports which hop of a Sync connection is broken.** Every failure looked
+  identical from outside: one sentence naming no stage. A refresh token presented by the wrong
+  OAuth client, a Hawk signature the storage node rejected, and an account that had never
+  synced each live at a different hop and need different fixes. The connection test now walks
+  the same path a sync walks — account, refresh token, token server, storage credentials,
+  data — and reports each separately, stopping at the first break rather than reporting noise
+  from every stage after it. It reads nothing and writes nothing. Settings also grows a section
+  for what the account actually holds: counts answer "did anything arrive", and a list of
+  usernames and origins answers "is it the right thing".
+
+- **The popup leads with the page you are looking at.** Opening it and being shown every login
+  you own, in one flat list, answers a question nobody asked. The credentials that match the
+  current page and the preferences that override the global ones for it now come first, and
+  the full list stays underneath for searching. The site panel edits those preferences in
+  place — autofill on load, never save here, inline menu, URI match — because the reason to
+  look at them is almost always the reason to change one.
+
+- **A local build and the released one can be installed side by side.** `src/manifest.json`
+  pins a `key`, which fixes the extension id, so an unpacked build collided with the released
+  CRX and Chromium would hold one or the other. That forced a choice between keeping the
+  auto-updating install and testing your own build. A dev build now drops the `key`, so its id
+  is derived from its path, and drops `update_url` with it, because a local build must never
+  be replaced by a download. `npm run build:dev`.
+
 ### Fixed
 
 - **The icon in the page was a cropped white blob, and was not the FireSync logo.** It drew a
@@ -33,6 +59,14 @@ All notable changes are recorded here. The format follows
   came out as a chipped crescent hanging off the droplet. It now draws the same `icon-small.svg`
   every other FireSync surface uses, which exists for exactly this size range and is a single
   solid shape with no hairline strokes to lose.
+
+- **Credit cards were missing from the vault's own counts.** `vault.stats()` tallied passwords
+  and addresses and ignored `creditcards` entirely, in both the count and the pending-upload
+  total — so a card waiting to sync showed as nothing waiting at all.
+
+## [0.7.2] — 2026-08-31
+
+### Fixed
 
 - **A sign-in that worked still left the extension signed out.** The redirect is detected
   three independent ways on purpose, but nothing serialised them: all three read the same
